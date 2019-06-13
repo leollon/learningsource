@@ -3,7 +3,7 @@
     werkzeug.wsgi
     ~~~~~~~~~~~~~
 
-    This module implements WSGI related helpers.
+    这个模块实现WSGI相关的助手函数
 
     :copyright: 2007 Pallets
     :license: BSD-3-Clause
@@ -31,15 +31,17 @@ from .urls import url_quote
 
 
 def responder(f):
-    """Marks a function as responder.  Decorate a function with it and it
-    will automatically call the return value as WSGI application.
-
-    Example::
+    """标记一个函数为响应器。使用它来装饰一个函数并且自动的将函数的返回值视作WSGI应用程序。
+    
+    例子::
 
         @responder
         def application(environ, start_response):
             return Response('Hello World!')
     """
+    # update_wrapper(wrapper, wrapped)
+    # wrapper 是一个被更新的函数
+    # wrapped 是原始函数
     return update_wrapper(lambda *a: f(*a)(*a[-2:]), f)
 
 
@@ -50,9 +52,8 @@ def get_current_url(
     host_only=False,
     trusted_hosts=None,
 ):
-    """A handy helper function that recreates the full URL as IRI for the
-    current request or parts of it.  Here's an example:
-
+    """一个给当前请求或部分请求而重新创建完整URL形成IRI的快捷助手函数。举个例子：
+    
     >>> from werkzeug.test import create_environ
     >>> env = create_environ("/?param=foo", "http://localhost/script")
     >>> get_current_url(env)
@@ -64,38 +65,37 @@ def get_current_url(
     >>> get_current_url(env, strip_querystring=True)
     'http://localhost/script/'
 
-    This optionally it verifies that the host is in a list of trusted hosts.
-    If the host is not in there it will raise a
-    :exc:`~werkzeug.exceptions.SecurityError`.
+    验证主机是否在可信任的主机里面，这是可选的。如果这个主机不再那里面，将会引发一个
+    :exc:`~werkzeug.exceptions.SecurityError`一场。
 
-    Note that the string returned might contain unicode characters as the
-    representation is an IRI not an URI.  If you need an ASCII only
-    representation you can use the :func:`~werkzeug.urls.iri_to_uri`
-    function:
+    注意这个返回的字符串可能包含unicode字符，因为表现形式是IRI而不知URI。如果只需要ASCII
+    表示形式，可以使用:func:`~werkzeug.urls.iri_to_uri` 函数：
 
     >>> from werkzeug.urls import iri_to_uri
     >>> iri_to_uri(get_current_url(env))
     'http://localhost/script/?param=foo'
 
-    :param environ: the WSGI environment to get the current URL from.
-    :param root_only: set `True` if you only want the root URL.
-    :param strip_querystring: set to `True` if you don't want the querystring.
-    :param host_only: set to `True` if the host URL should be returned.
-    :param trusted_hosts: a list of trusted hosts, see :func:`host_is_trusted`
-                          for more information.
+    :param environ: 可以从中获取当前URL的WSGI环境变量
+    :param root_only: 如果只想获取根URL，设置为`True`
+    :param strip_querystring: 不想要查询字符串，可以设置为`True`
+    :param host_only: 如果返回主机URL，设置为`True`
+    :param trusted_hosts: 可信任主机列表，更多信息查看:func:`host_is_trusted`
     """
     tmp = [environ["wsgi.url_scheme"], "://", get_host(environ, trusted_hosts)]
     cat = tmp.append
     if host_only:
+        # 返回主机地址
         return uri_to_iri("".join(tmp) + "/")
-    cat(url_quote(wsgi_get_bytes(environ.get("SCRIPT_NAME", ""))).rstrip("/"))
-    cat("/")
+    cat(url_quote(wsgi_get_bytes(environ.get("SCRIPT_NAME", ""))).rstrip("/"))  # 往列表中添加脚本名字或空字符串，并将字符串转换成符合URL格式的字符串
+    cat("/")  # 末尾添加反斜杠
     if not root_only:
-        cat(url_quote(wsgi_get_bytes(environ.get("PATH_INFO", "")).lstrip(b"/")))
+        cat(url_quote(wsgi_get_bytes(environ.get("PATH_INFO", "")).lstrip(b"/")))  # 获取请求路径并将路径最左边斜杠去掉，并将该字符串转换成为符合URL格式的字符串
         if not strip_querystring:
+            # 获取URL中的查询字符串
             qs = get_query_string(environ)
             if qs:
                 cat("?" + qs)
+    # 连接成字符串，转换成IRI格式的字符串
     return uri_to_iri("".join(tmp))
 
 
