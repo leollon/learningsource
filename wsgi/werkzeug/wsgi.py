@@ -100,15 +100,12 @@ def get_current_url(
 
 
 def host_is_trusted(hostname, trusted_list):
-    """Checks if a host is trusted against a list.  This also takes care
-    of port normalization.
+    """检查一个主机地址是否不在一个主机列表中。还考虑到了端口。
 
     .. versionadded:: 0.9
 
-    :param hostname: the hostname to check
-    :param trusted_list: a list of hostnames to check against.  If a
-                         hostname starts with a dot it will match against
-                         all subdomains as well.
+    :param hostname: 要检查的主机名字
+    :param trusted_list: 用于核对的主机名列表。如果主机名以点号开头，将会匹配所有的子域名。
     """
     if not hostname:
         return False
@@ -118,10 +115,12 @@ def host_is_trusted(hostname, trusted_list):
 
     def _normalize(hostname):
         if ":" in hostname:
+            # 取第一个冒号之前的字符串
             hostname = hostname.rsplit(":", 1)[0]
         return _encode_idna(hostname)
 
     try:
+        # 将主机名规范化
         hostname = _normalize(hostname)
     except UnicodeError:
         return False
@@ -143,20 +142,17 @@ def host_is_trusted(hostname, trusted_list):
 
 
 def get_host(environ, trusted_hosts=None):
-    """Return the host for the given WSGI environment. This first checks
-    the ``Host`` header. If it's not present, then ``SERVER_NAME`` and
-    ``SERVER_PORT`` are used. The host will only contain the port if it
-    is different than the standard port for the protocol.
+    """根据给定的WSGI环境变量，获取主机并返回。这是第一次检测HTTP协议中的``Host``头部。
+    如果不存在，那么使用``SERVER_NAME``和 ``SERVER_PORT``。如果与协议的标准端口不一样，
+    这个主机将只包含端口。
 
-    Optionally, verify that the host is trusted using
-    :func:`host_is_trusted` and raise a
-    :exc:`~werkzeug.exceptions.SecurityError` if it is not.
+    可选择使用:func:`host_is_trusted`来验证返回的主机，并且如果不是可信任的主机，则引发
+    :exc:`~werkzeug.exceptions.SecurityError`异常。
 
-    :param environ: The WSGI environment to get the host from.
-    :param trusted_hosts: A list of trusted hosts.
-    :return: Host, with port if necessary.
-    :raise ~werkzeug.exceptions.SecurityError: If the host is not
-        trusted.
+    :param environ: 获取主机名的WSGI环境变量。
+    :param trusted_hosts: 一个可信任的主机列表。
+    :return: 主机名，如果有必要的话，带上端口号。
+    :raise ~werkzeug.exceptions.SecurityError: 如果主机不可信任。
     """
     if "HTTP_HOST" in environ:
         rv = environ["HTTP_HOST"]
@@ -180,13 +176,12 @@ def get_host(environ, trusted_hosts=None):
 
 
 def get_content_length(environ):
-    """Returns the content length from the WSGI environment as
-    integer. If it's not available or chunked transfer encoding is used,
-    ``None`` is returned.
+    """从WSGI环境变量中获取内容长度，作为一个整形类型的值进行返回。如果它不可用或者使用了
+    分块传输编码，则返回``None``.
 
     .. versionadded:: 0.9
 
-    :param environ: the WSGI environ to fetch the content length from.
+    :param environ: 从中的获取的内容长度的的WSGI环境变量。
     """
     if environ.get("HTTP_TRANSFER_ENCODING", "") == "chunked":
         return None
@@ -200,38 +195,33 @@ def get_content_length(environ):
 
 
 def get_input_stream(environ, safe_fallback=True):
-    """Returns the input stream from the WSGI environment and wraps it
-    in the most sensible way possible. The stream returned is not the
-    raw WSGI stream in most cases but one that is safe to read from
-    without taking into account the content length.
+    """从WSGI中返回输入流并且用可能最合理的方式进行包装它。大多数情况下，返回的流不是原来
+    的WSGI流，但是一个确认的事情是不用考虑内容长度，可以从该输入流中安全的读取数据。
+    
 
-    If content length is not set, the stream will be empty for safety reasons.
-    If the WSGI server supports chunked or infinite streams, it should set
-    the ``wsgi.input_terminated`` value in the WSGI environ to indicate that.
+    如果内容长度没有设置，出于安全的考虑，这个流将会是空的。如果WSGI服务器支持分块或者无线流，
+    那么它应该在WSGI环境中设置``wsgi.input_terminated``的值来暗示。
 
     .. versionadded:: 0.9
 
-    :param environ: the WSGI environ to fetch the stream from.
-    :param safe_fallback: use an empty stream as a safe fallback when the
-        content length is not set. Disabling this allows infinite streams,
-        which can be a denial-of-service risk.
+    :param environ: 从中获取流的WSGI环境变量
+    :param safe_fallback: 当HTTP头中的内容长度没有设置的时候，使用空流作为安全的值。
+    关闭这个将会允许无限流，这可能会出现拒绝式服务（denial-of-service）的风险。
     """
     stream = environ["wsgi.input"]
     content_length = get_content_length(environ)
 
-    # A wsgi extension that tells us if the input is terminated.  In
-    # that case we return the stream unchanged as we know we can safely
-    # read it until the end.
+    # wsgi 扩展告诉是否这个输入可以被终止。这种情况下，我们可以返回未改变的流，因为可以进行
+    # 安全地读取直到结束。
     if environ.get("wsgi.input_terminated"):
         return stream
 
-    # If the request doesn't specify a content length, returning the stream is
-    # potentially dangerous because it could be infinite, malicious or not. If
-    # safe_fallback is true, return an empty stream instead for safety.
+    # 如果请求没有指定内容长度，将要返回的流是存在潜在的危险的，因为它可能是无限，恶意也可能不是。
+    # 如果safe_fallback 为 true，为了安全，得返回空流。
     if content_length is None:
         return BytesIO() if safe_fallback else stream
 
-    # Otherwise limit the stream to the content length
+    # 否则限制流的内容长度
     return LimitedStream(stream, content_length)
 
 
@@ -844,37 +834,27 @@ def make_chunk_iter(
 
 @implements_iterator
 class LimitedStream(io.IOBase):
-    """Wraps a stream so that it doesn't read more than n bytes.  If the
-    stream is exhausted and the caller tries to get more bytes from it
-    :func:`on_exhausted` is called which by default returns an empty
-    string.  The return value of that function is forwarded
-    to the reader function.  So if it returns an empty string
-    :meth:`read` will return an empty string as well.
+    """包转一个流，为的是它不让它读取超过n个字节。如果流读取完了并且调用方尝试从中获取更多的
+    字节，则调用默认返回空字符串的:func:`on_exhausted`。这个函数的返回值转发给读取函数。
+    所以如果返回空字符串，则:meth:`read`也会返回空字符串。
 
-    The limit however must never be higher than what the stream can
-    output.  Otherwise :meth:`readlines` will try to read past the
-    limit.
+    但是，这个限制必须小于或等于这个流能够输出的。否则:meth:`realines`将尝试读取超过这个限制的流。
 
-    .. admonition:: Note on WSGI compliance
+    .. admonition:: 注意WSGI兼容性
 
-       calls to :meth:`readline` and :meth:`readlines` are not
-       WSGI compliant because it passes a size argument to the
-       readline methods.  Unfortunately the WSGI PEP is not safely
-       implementable without a size argument to :meth:`readline`
-       because there is no EOF marker in the stream.  As a result
-       of that the use of :meth:`readline` is discouraged.
+       调用:meth:`realine` 和 :meth:`readlines` 是不兼容的，因为需要向readline方法传
+       递一个size参数。不巧的是，WSGI PEP没有安全地实现没有size参数的:meth:`readline`，
+       因为在流中没有EOF标记器。因此，不鼓励使用:meth:`readline`方法。
 
-       For the same reason iterating over the :class:`LimitedStream`
-       is not portable.  It internally calls :meth:`readline`.
+       考虑到相同的原因，迭代:class:`LimitedStream`不是可移植的。它的内部调用了
+       :meth:`readline`。
 
-       We strongly suggest using :meth:`read` only or using the
-       :func:`make_line_iter` which safely iterates line-based
-       over a WSGI input stream.
+       强烈建议使用:meth:`read` 或者使用安全地按行进行迭代WSGI输入流的
+       :func:`make_line_iter`。
 
-    :param stream: the stream to wrap.
-    :param limit: the limit for the stream, must not be longer than
-                  what the string can provide if the stream does not
-                  end with `EOF` (like `wsgi.input`)
+    :param stream: 要包装的流
+    :param limit: 流的限制，如果流的末尾没有`EOF`（比如`wsgi.input`），禁止读取流的限制
+    长度长于字符串所能提供的。
     """
 
     def __init__(self, stream, limit):
@@ -888,16 +868,13 @@ class LimitedStream(io.IOBase):
 
     @property
     def is_exhausted(self):
-        """If the stream is exhausted this attribute is `True`."""
+        """如果流读取完了，这个属性的值为`True`。"""
         return self._pos >= self.limit
 
     def on_exhausted(self):
-        """This is called when the stream tries to read past the limit.
-        The return value of this function is returned from the reading
-        function.
+        """当流尝试读取超过限制的时候，调用这个方法。这个函数的返回值由读取函数进行返回。
         """
-        # Read null bytes from the stream so that we get the
-        # correct end of stream marker.
+        #读取空字节为的是可以获取到正确的流标记结尾。
         return self._read(0)
 
     def on_disconnect(self):

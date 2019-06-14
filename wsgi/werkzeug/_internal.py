@@ -330,20 +330,21 @@ def _cookie_parse_impl(b):
 
 
 def _encode_idna(domain):
-    # If we're given bytes, make sure they fit into ASCII
+    # 如果参数给定的字节类型的值，确保它们能够转换成ASCII
     if not isinstance(domain, text_type):
         domain.decode("ascii")
         return domain
 
-    # Otherwise check if it's already ascii, then return
+    # 否则检查它们是否已经是ascii，然后返回
     try:
         return domain.encode("ascii")
     except UnicodeError:
         pass
 
-    # Otherwise encode each part separately
+    # 否则，单独对每个部分进行编码
     parts = domain.split(".")
     for idx, part in enumerate(parts):
+        # 转换成字节
         parts[idx] = part.encode("idna")
     return b".".join(parts)
 

@@ -169,10 +169,9 @@ else:
         return _latin1_encode
 
     def normalize_string_tuple(tup):
-        """Ensures that all types in the tuple are either strings
-        or bytes.
+        """确保元组中的所有类型是字符串类型或者是字节类型。
         """
-        tupiter = iter(tup)
+        tupiter = iter(tup)  # 迭代器
         is_text = isinstance(next(tupiter, None), text_type)
         for arg in tupiter:
             if isinstance(arg, text_type) != is_text:

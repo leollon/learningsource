@@ -566,20 +566,17 @@ def url_quote_plus(string, charset="utf-8", errors="strict", safe=""):
 
 
 def url_unparse(components):
-    """The reverse operation to :meth:`url_parse`.  This accepts arbitrary
-    as well as :class:`URL` tuples and returns a URL as a string.
+    """给:meth:`url_parse`预留的操作。这个函数接受任意和:class:`URL`元组一样的参数，
+    并且返回一个字符串URL。
 
-    :param components: the parsed URL as tuple which should be converted
-                       into a URL string.
+    :param components: 解析后的URL是一个应该转换为URL字符串的的元组。
     """
     scheme, netloc, path, query, fragment = normalize_string_tuple(components)
-    s = make_literal_wrapper(scheme)
+    s = make_literal_wrapper(scheme) # s是一个函数对象
     url = s("")
 
-    # We generally treat file:///x and file:/x the same which is also
-    # what browsers seem to do.  This also allows us to ignore a schema
-    # register for netloc utilization or having to differenciate between
-    # empty and missing netloc.
+    # 通常来说，使用同样的方式对待file:///和file:/x，浏览器似乎也是这么干的。
+    # 这也允许忽略netloc或区分空白字符串与丢失netloc的协议注册。
     if netloc or (scheme and path.startswith(s("/"))):
         if path and path[:1] != s("/"):
             path = s("/") + path
@@ -592,6 +589,7 @@ def url_unparse(components):
         url = url + s("?") + query
     if fragment:
         url = url + s("#") + fragment
+    # 组成了字符串，从而构成一个完整的URL
     return url
 
 
@@ -681,26 +679,23 @@ codecs.register_error("werkzeug.url_quote", _codec_error_url_quote)
 
 
 def uri_to_iri(uri, charset="utf-8", errors="werkzeug.url_quote"):
-    """Convert a URI to an IRI. All valid UTF-8 characters are unquoted,
-    leaving all reserved and invalid characters quoted. If the URL has
-    a domain, it is decoded from Punycode.
+    """将一个URL转换成一个IRI。所有有效的UTF8的字符不会被引用，
+    剩下所有应该保留和无效的被引用的字符。如果URL包含有一个域名，它是使用Punycode编码。
 
     >>> uri_to_iri("http://xn--n3h.net/p%C3%A5th?q=%C3%A8ry%DF")
     'http://\\u2603.net/p\\xe5th?q=\\xe8ry%DF'
 
-    :param uri: The URI to convert.
-    :param charset: The encoding to encode unquoted bytes with.
-    :param errors: Error handler to use during ``bytes.encode``. By
-        default, invalid bytes are left quoted.
+    :param uri: 要转换的URI.
+    :param charset: 用于编码未被引用的字节的编码。
+    :param errors: 在``bytes.encode``期间使用的错误处理程序。默认情况下，引用剩下的无效字节
 
     .. versionchanged:: 0.15
-        All reserved and invalid characters remain quoted. Previously,
-        only some reserved characters were preserved, and invalid bytes
-        were replaced instead of left quoted.
+        所有保留的无效字符保持被引用的状态。在此之前，只有保留的字符应该被保留，并且无效的自己被替代而不是留下来。
 
     .. versionadded:: 0.6
     """
     if isinstance(uri, tuple):
+        # 将一个元组里面的所有元素转换成URI
         uri = url_unparse(uri)
 
     uri = url_parse(to_unicode(uri, charset))
