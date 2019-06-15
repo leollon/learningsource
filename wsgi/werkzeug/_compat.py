@@ -91,8 +91,7 @@ if PY2:
         return tup
 
     def try_coerce_native(s):
-        """Try to coerce a unicode string to native if possible. Otherwise,
-        leave it as unicode.
+        """如果有可能，尝试强制将一个unicode字符串变成原生的。否则按照原来的unicode保留下来。
         """
         try:
             return to_native(s)
@@ -121,6 +120,7 @@ if PY2:
     def to_native(x, charset=sys.getdefaultencoding(), errors="strict"):
         if x is None or isinstance(x, str):
             return x
+        # 将x编码成系统默认编码的x
         return x.encode(charset, errors)
 
 
@@ -203,16 +203,21 @@ else:
     def to_native(x, charset=sys.getdefaultencoding(), errors="strict"):
         if x is None or isinstance(x, str):
             return x
+        # 将x解码成系统默认编码的x
         return x.decode(charset, errors)
 
 
 def to_unicode(
     x, charset=sys.getdefaultencoding(), errors="strict", allow_none_charset=False
 ):
+    """使用系统默认的编码对x进行解码
+    """
     if x is None:
         return None
     if not isinstance(x, bytes):
+        # 转成unicode编码
         return text_type(x)
     if charset is None and allow_none_charset:
         return x
+    # 对x解码
     return x.decode(charset, errors)

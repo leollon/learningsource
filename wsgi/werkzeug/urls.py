@@ -526,31 +526,39 @@ def _fast_url_quote_plus(string):
 
 
 def url_quote(string, charset="utf-8", errors="strict", safe="/:", unsafe=""):
-    """URL encode a single string with a given encoding.
+    """URL使用给定的编码给单独的字符串进行编码。
 
-    :param s: the string to quote.
-    :param charset: the charset to be used.
-    :param safe: an optional sequence of safe characters.
-    :param unsafe: an optional sequence of unsafe characters.
+    :param s: 要引用的字符串
+    :param charset: 使用的字符集
+    :param safe: 可选的安全字符的序列
+    :param unsafe: 可选的不安全字符的序列an optional sequence of unsafe characters.
 
     .. versionadded:: 0.9.2
-       The `unsafe` parameter was added.
+       加入`unsafe`参数。
     """
     if not isinstance(string, (text_type, bytes, bytearray)):
+        # 如果string不是unicode，字节，字节数组类型，
+        # 将string转换成unicode编码的string
         string = text_type(string)
     if isinstance(string, text_type):
+        # 使用charset对string进行编码
         string = string.encode(charset, errors)
     if isinstance(safe, text_type):
+        # 对安全字符序列进行编码
         safe = safe.encode(charset, errors)
     if isinstance(unsafe, text_type):
+        # 对不安全字符序列进行编码
         unsafe = unsafe.encode(charset, errors)
+    # 进行差集运算，去掉safe序列中存在unsafe序列中的字符。
     safe = (frozenset(bytearray(safe)) | _always_safe) - frozenset(bytearray(unsafe))
+    # 字节数组
     rv = bytearray()
     for char in bytearray(string):
         if char in safe:
             rv.append(char)
         else:
             rv.extend(_bytetohex[char])
+    # 将字节数据转换自己，最后转换成原生字符串
     return to_native(bytes(rv))
 
 

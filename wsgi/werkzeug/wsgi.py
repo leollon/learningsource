@@ -226,64 +226,54 @@ def get_input_stream(environ, safe_fallback=True):
 
 
 def get_query_string(environ):
-    """Returns the `QUERY_STRING` from the WSGI environment.  This also takes
-    care about the WSGI decoding dance on Python 3 environments as a
-    native string.  The string returned will be restricted to ASCII
-    characters.
+    """从WSGI环境变量中获取`QUERY_STRING`并返回。这也考虑到了Python3 环境中作为原生字符
+    串的WSGI解码操作。返回的字符串被限制为只包含ASCII字符。
 
     .. versionadded:: 0.9
 
-    :param environ: the WSGI environment object to get the query string from.
+    :param environ: 从中获取查询字符串的WSGI环境变量。
     """
     qs = wsgi_get_bytes(environ.get("QUERY_STRING", ""))
-    # QUERY_STRING really should be ascii safe but some browsers
-    # will send us some unicode stuff (I am looking at you IE).
-    # In that case we want to urllib quote it badly.
+    # QUERY_STRING 应该是ascii字符，但是一些浏览器会发送一些unicode的东西（比如IE）。
+    # 在那种情况下，我们想要urllib糟糕地引用。
     return try_coerce_native(url_quote(qs, safe=":&%=+$!*'(),"))
 
 
 def get_path_info(environ, charset="utf-8", errors="replace"):
-    """Returns the `PATH_INFO` from the WSGI environment and properly
-    decodes it.  This also takes care about the WSGI decoding dance
-    on Python 3 environments.  if the `charset` is set to `None` a
-    bytestring is returned.
+    """从WSGI环境变量中获取`PATH_INFO`并返回它并且适当地对它进行编码。这也考虑到了在
+    Python3 环境上WSGI的编码操作。如果`charset`设置为`None`，则返回bytestring。
 
     .. versionadded:: 0.9
 
-    :param environ: the WSGI environment object to get the path from.
-    :param charset: the charset for the path info, or `None` if no
-                    decoding should be performed.
-    :param errors: the decoding error handling.
+    :param environ: 从中获取路径的WSGI环境对象。
+    :param charset: 解码路径信息使用的字符集，或者如果无需解码，则为`None`。
+    :param errors: 解码的错误处理。
     """
     path = wsgi_get_bytes(environ.get("PATH_INFO", ""))
     return to_unicode(path, charset, errors, allow_none_charset=True)
 
 
 def get_script_name(environ, charset="utf-8", errors="replace"):
-    """Returns the `SCRIPT_NAME` from the WSGI environment and properly
-    decodes it.  This also takes care about the WSGI decoding dance
-    on Python 3 environments.  if the `charset` is set to `None` a
-    bytestring is returned.
+    """从WSGI环境变量中获取并返回`SCRIPT_NAME`并且适当地进行解码。也考虑了Python3环境上的
+    WSGI的解码操作。如果`charset`设置为`None`，则返回bytestring。
 
     .. versionadded:: 0.9
 
-    :param environ: the WSGI environment object to get the path from.
-    :param charset: the charset for the path, or `None` if no
-                    decoding should be performed.
-    :param errors: the decoding error handling.
+    :param environ: 从中获取路径的环境变量对象。
+    :param charset: 解码路径使用的字符集，或者如果无需解码，则为`None`。
+    :param errors: 解码的错误处理。
     """
     path = wsgi_get_bytes(environ.get("SCRIPT_NAME", ""))
     return to_unicode(path, charset, errors, allow_none_charset=True)
 
 
 def pop_path_info(environ, charset="utf-8", errors="replace"):
-    """Removes and returns the next segment of `PATH_INFO`, pushing it onto
-    `SCRIPT_NAME`.  Returns `None` if there is nothing left on `PATH_INFO`.
+    """移除并返回下一个`PATH_INFO`的分段，将其连接到`SCRIPT_NAME`后面。如果`PATH_INFO`
+    为空，则返回`None`。
 
-    If the `charset` is set to `None` a bytestring is returned.
+    如果`charset`设置为`None`，则返回bytestring。
 
-    If there are empty segments (``'/foo//bar``) these are ignored but
-    properly pushed to the `SCRIPT_NAME`:
+    如果有空的分段，忽略它们，但是适当地与`SCRIPT_NAME`进行连接：
 
     >>> env = {'SCRIPT_NAME': '/foo', 'PATH_INFO': '/a/b'}
     >>> pop_path_info(env)
@@ -298,10 +288,9 @@ def pop_path_info(environ, charset="utf-8", errors="replace"):
     .. versionadded:: 0.5
 
     .. versionchanged:: 0.9
-       The path is now decoded and a charset and encoding
-       parameter can be provided.
+       路径现在是编码过后的并且提供字符集和编码参数。
 
-    :param environ: the WSGI environment that is modified.
+    :param environ: 被修改的WSGI环境变量。
     """
     path = environ.get("PATH_INFO")
     if not path:
@@ -329,9 +318,8 @@ def pop_path_info(environ, charset="utf-8", errors="replace"):
 
 
 def peek_path_info(environ, charset="utf-8", errors="replace"):
-    """Returns the next segment on the `PATH_INFO` or `None` if there
-    is none.  Works like :func:`pop_path_info` without modifying the
-    environment:
+    """返回`PATH_INFO`的下一个分段或者如果PATH_INFO为空的话，返回`None`。
+    像:func:`pop_path_info`一样的功能，但是不修改环境变量的内容：
 
     >>> env = {'SCRIPT_NAME': '/foo', 'PATH_INFO': '/a/b'}
     >>> peek_path_info(env)
@@ -339,16 +327,16 @@ def peek_path_info(environ, charset="utf-8", errors="replace"):
     >>> peek_path_info(env)
     'a'
 
-    If the `charset` is set to `None` a bytestring is returned.
+    如果设置`charset`为`None`，则返回bytestring。
 
     .. versionadded:: 0.5
 
     .. versionchanged:: 0.9
-       The path is now decoded and a charset and encoding
-       parameter can be provided.
+       现在路径是编码后的并且提供字符集和编码参数。
 
-    :param environ: the WSGI environment that is checked.
+    :param environ: 需要检查的WSGI环境变量。
     """
+    # 取出开头的反斜杠，并分割字符串一次，最后生成一个列表。
     segments = environ.get("PATH_INFO", "").lstrip("/").split("/", 1)
     if segments:
         return to_unicode(
@@ -363,13 +351,12 @@ def extract_path_info(
     errors="werkzeug.url_quote",
     collapse_http_schemes=True,
 ):
-    """Extracts the path info from the given URL (or WSGI environment) and
-    path.  The path info returned is a unicode string, not a bytestring
-    suitable for a WSGI environment.  The URLs might also be IRIs.
+    """从给定的URL（或WSGI环境）和路径中中提取出路径信息。返回的路径信息是unicode字符串，
+    不是适合于WSGI环境的bytestring。URLs也有可能是IRIs。
 
-    If the path info could not be determined, `None` is returned.
+    如果路径信息不能确定，则返回`None`。
 
-    Some examples:
+    一些例子:
 
     >>> extract_path_info('http://example.com/app', '/app/hello')
     u'/hello'
@@ -381,30 +368,25 @@ def extract_path_info(
     ...                   collapse_http_schemes=False) is None
     True
 
-    Instead of providing a base URL you can also pass a WSGI environment.
+    你也可以传递WSGI环境而不是提供一个基地址（base url）。
 
-    :param environ_or_baseurl: a WSGI environment dict, a base URL or
-                               base IRI.  This is the root of the
-                               application.
-    :param path_or_url: an absolute path from the server root, a
-                        relative path (in which case it's the path info)
-                        or a full URL.  Also accepts IRIs and unicode
-                        parameters.
-    :param charset: the charset for byte data in URLs
-    :param errors: the error handling on decode
-    :param collapse_http_schemes: if set to `False` the algorithm does
-                                  not assume that http and https on the
-                                  same server point to the same
-                                  resource.
+    :param environ_or_baseurl: 一个WSGI环境字典，基地址或基IRI。这是应用的根目录。
+    :param path_or_url: 来自服务器根的绝对路径，相对路径（这种情况下就是WSGI中的
+                        PATH INFO）或者完整的URL。还可接收IRIs和unicode参数。
+    :param charset: 用于URLs中字节数据的字符集
+    :param errors: 解码时错误处理
+    :param collapse_http_schemes: 如果设置为`False`，算法并不假设http和https指向在
+                                  相同服务器上相同的资源。
 
     .. versionchanged:: 0.15
-        The ``errors`` parameter defaults to leaving invalid bytes
-        quoted instead of replacing them.
+        ``errors``参数默认为留下的无效的字节引用而不是替换他们。
 
     .. versionadded:: 0.6
     """
 
     def _normalize_netloc(scheme, netloc):
+        """使网络地址变得符合规范
+        """
         parts = netloc.split(u"@", 1)[-1].split(u":", 1)
         if len(parts) == 2:
             netloc, port = parts
@@ -419,19 +401,20 @@ def extract_path_info(
             netloc += u":" + port
         return netloc
 
-    # make sure whatever we are working on is a IRI and parse it
+    # 确保无论我们处理什么都能够是IRI并且对它进行解析
     path = uri_to_iri(path_or_url, charset, errors)
     if isinstance(environ_or_baseurl, dict):
         environ_or_baseurl = get_current_url(environ_or_baseurl, root_only=True)
     base_iri = uri_to_iri(environ_or_baseurl, charset, errors)
+    # 从uri中解析出网络协议，基网络地址，基路径
     base_scheme, base_netloc, base_path = url_parse(base_iri)[:3]
     cur_scheme, cur_netloc, cur_path, = url_parse(url_join(base_iri, path))[:3]
 
-    # normalize the network location
+    # 使网络地址变得规范
     base_netloc = _normalize_netloc(base_scheme, base_netloc)
     cur_netloc = _normalize_netloc(cur_scheme, cur_netloc)
 
-    # is that IRI even on a known HTTP scheme?
+    # IRI是不是在已知的HTTP方案
     if collapse_http_schemes:
         for scheme in base_scheme, cur_scheme:
             if scheme not in (u"http", u"https"):
@@ -440,11 +423,11 @@ def extract_path_info(
         if not (base_scheme in (u"http", u"https") and base_scheme == cur_scheme):
             return None
 
-    # are the netlocs compatible?
+    # 网络地址兼容吗？
     if base_netloc != cur_netloc:
         return None
 
-    # are we below the application path?
+    # 是不是在应用路径之下？
     base_path = base_path.rstrip(u"/")
     if not cur_path.startswith(base_path):
         return None
