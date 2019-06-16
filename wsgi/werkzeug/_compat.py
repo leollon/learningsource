@@ -36,6 +36,10 @@ if PY2:
     exec("def reraise(tp, value, tb=None):\n raise tp, value, tb")
 
     def fix_tuple_repr(obj):
+        """
+        >>> fix_tuple_repr(collections_abc.namedtuple("_URLTuple", ("scheme", "netloc", "path", "query", "fragments")))
+        <class '__main__._URLTuple'>
+        """
         def __repr__(self):
             cls = self.__class__
             return "%s(%s)" % (
@@ -164,6 +168,7 @@ else:
     _latin1_encode = operator.methodcaller("encode", "latin1")
 
     def make_literal_wrapper(reference):
+        """返回一个函数对象"""
         if isinstance(reference, text_type):
             return _identity
         return _latin1_encode

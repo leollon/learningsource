@@ -60,7 +60,7 @@ _URLTuple = fix_tuple_repr(
 
 
 class BaseURL(_URLTuple):
-    """Superclass of :py:class:`URL` and :py:class:`BytesURL`."""
+    """:py:class:`URL` 和 :py:class:`BytesURL` 的超类。"""
 
     __slots__ = ()
 
@@ -352,7 +352,7 @@ class URL(BaseURL):
 
 
 class BytesURL(BaseURL):
-    """Represents a parsed URL in bytes."""
+    """用字节表示解析后的URL。"""
 
     __slots__ = ()
     _at = b"@"
@@ -436,17 +436,14 @@ def _url_unquote_legacy(value, unsafe=""):
 
 
 def url_parse(url, scheme=None, allow_fragments=True):
-    """Parses a URL from a string into a :class:`URL` tuple.  If the URL
-    is lacking a scheme it can be provided as second argument. Otherwise,
-    it is ignored.  Optionally fragments can be stripped from the URL
-    by setting `allow_fragments` to `False`.
+    """将是字符串的URL解析成:class:`URL`元组。如果URL缺少协议方案，可以通过第二个参数来提供。
+    否则，忽略。可选地，通过设置`allow_fragments`为`False`，片段可以从URL中移除。
 
-    The inverse of this function is :func:`url_unparse`.
+    与这个函数相反的是:func:`url_unparse`。
 
-    :param url: the URL to parse.
-    :param scheme: the default schema to use if the URL is schemaless.
-    :param allow_fragments: if set to `False` a fragment will be removed
-                            from the URL.
+    :param url: 需要解析的URL。
+    :param scheme: 默认使用的协议方案，如果URL中没有协议方案。
+    :param allow_fragments: 如果设置为`False`，一个片段将从URL中移除。
     """
     s = make_literal_wrapper(url)
     is_text_based = isinstance(url, text_type)
@@ -454,14 +451,13 @@ def url_parse(url, scheme=None, allow_fragments=True):
     if scheme is None:
         scheme = s("")
     netloc = query = fragment = s("")
-    i = url.find(s(":"))
+    i = url.find(s(":"))  # url中‘:’的最小索引
     if i > 0 and _scheme_re.match(to_native(url[:i], errors="replace")):
-        # make sure "iri" is not actually a port number (in which case
-        # "scheme" is really part of the path)
-        rest = url[i + 1 :]
+        # 确保“iri”实际上不是一个端口号（这种情况下“协议方案”是路径的一部分了）。
+        rest = url[i + 1 :]  # 获取URL，例如：//werkzeug.xxx.xxx
         if not rest or any(c not in s("0123456789") for c in rest):
-            # not a port number
-            scheme, url = url[:i].lower(), rest
+            # 不是一个端口号码
+            scheme, url = url[:i].lower(), rest  # 协议方案，URL
 
     if url[:2] == s("//"):
         delim = len(url)
@@ -469,16 +465,18 @@ def url_parse(url, scheme=None, allow_fragments=True):
             wdelim = url.find(c, 2)
             if wdelim >= 0:
                 delim = min(delim, wdelim)
-        netloc, url = url[2:delim], url[delim:]
+        netloc, url = url[2:delim], url[delim:]  # 网络地址，url（统一资源定位符）
         if (s("[") in netloc and s("]") not in netloc) or (
             s("]") in netloc and s("[") not in netloc
         ):
             raise ValueError("Invalid IPv6 URL")
 
     if allow_fragments and s("#") in url:
-        url, fragment = url.split(s("#"), 1)
+        # url是想这样子的/path/to/post#comments
+        url, fragment = url.split(s("#"), 1)  # 仅分割一次，获取comments
     if s("?") in url:
-        url, query = url.split(s("?"), 1)
+        # url是想这个样子的/path/to/search?q=xxx...
+        url, query = url.split(s("?"), 1)  # 仅分割一次，获取q=xxx...
 
     result_type = URL if is_text_based else BytesURL
     return result_type(scheme, netloc, url, query, fragment)

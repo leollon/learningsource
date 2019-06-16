@@ -406,7 +406,7 @@ def extract_path_info(
     if isinstance(environ_or_baseurl, dict):
         environ_or_baseurl = get_current_url(environ_or_baseurl, root_only=True)
     base_iri = uri_to_iri(environ_or_baseurl, charset, errors)
-    # 从uri中解析出网络协议，基网络地址，基路径
+    # 从url中解析出网络协议，基网络地址，基路径
     base_scheme, base_netloc, base_path = url_parse(base_iri)[:3]
     cur_scheme, cur_netloc, cur_path, = url_parse(url_join(base_iri, path))[:3]
 
