@@ -65,24 +65,21 @@ class BaseURL(_URLTuple):
     __slots__ = ()
 
     def replace(self, **kwargs):
-        """Return an URL with the same values, except for those parameters
-        given new values by whichever keyword arguments are specified."""
+        """返回相同值的URL，除了通过指定关键字参数而给那些参数赋新值之外。"""
         return self._replace(**kwargs)
 
     @property
     def host(self):
-        """The host part of the URL if available, otherwise `None`.  The
-        host is either the hostname or the IP address mentioned in the
-        URL.  It will not contain the port.
+        """如果有的话，URL的主机部分，否则为`None`。主机可以是URL中的主机名或是IP地址，
+        不含有端口号。
         """
         return self._split_host()[0]
 
     @property
     def ascii_host(self):
-        """Works exactly like :attr:`host` but will return a result that
-        is restricted to ASCII.  If it finds a netloc that is not ASCII
-        it will attempt to idna decode it.  This is useful for socket
-        operations when the URL might include internationalized characters.
+        """像:attr:`host`一样的效果，但是返回的结果被限制为ASCII字符。如果找到的网络地址不是
+        ASCII字符类型，将会尝试使用idna对其进行解码。当URL可能包括国际字符的的时候，对于
+        socket操作，这是有可用之处的。
         """
         rv = self.host
         if rv is not None and isinstance(rv, text_type):
@@ -94,8 +91,7 @@ class BaseURL(_URLTuple):
 
     @property
     def port(self):
-        """The port in the URL as an integer if it was present, `None`
-        otherwise.  This does not fill in default ports.
+        """如果存在端口号，将URL中的端口号转换成整型，否则为`None`。不会填充默认的端口号。
         """
         try:
             rv = int(to_native(self._split_host()[1]))
@@ -106,15 +102,14 @@ class BaseURL(_URLTuple):
 
     @property
     def auth(self):
-        """The authentication part in the URL if available, `None`
-        otherwise.
+        """如果存在的话，URL中的验证部分，否则为`None`。
         """
         return self._split_netloc()[0]
 
     @property
     def username(self):
-        """The username if it was part of the URL, `None` otherwise.
-        This undergoes URL decoding and will always be a unicode string.
+        """如果用户名是URL的一部分，取出用户名，否则为`None`。
+        经过URL解码并且一直是unicode字符串。
         """
         rv = self._split_auth()[0]
         if rv is not None:
@@ -122,15 +117,15 @@ class BaseURL(_URLTuple):
 
     @property
     def raw_username(self):
-        """The username if it was part of the URL, `None` otherwise.
-        Unlike :attr:`username` this one is not being decoded.
+        """如果用户名是URL的一部分，返回用户名，否则为`None`。
+        不像:attr:`username`，这个是不会被解码的。
         """
         return self._split_auth()[0]
 
     @property
     def password(self):
-        """The password if it was part of the URL, `None` otherwise.
-        This undergoes URL decoding and will always be a unicode string.
+        """如果密码是URL的一部分，返回该密码，否则返回`None`。
+        经过URL解码并且一直是unicode字符串。
         """
         rv = self._split_auth()[1]
         if rv is not None:
@@ -138,34 +133,31 @@ class BaseURL(_URLTuple):
 
     @property
     def raw_password(self):
-        """The password if it was part of the URL, `None` otherwise.
-        Unlike :attr:`password` this one is not being decoded.
+        """如果密码是URL的一部分，返回该密码，否则返回`None`。
+        不像:attr:`password`，这个是不会别解码的。
         """
         return self._split_auth()[1]
 
     def decode_query(self, *args, **kwargs):
-        """Decodes the query part of the URL.  Ths is a shortcut for
-        calling :func:`url_decode` on the query argument.  The arguments and
-        keyword arguments are forwarded to :func:`url_decode` unchanged.
+        """编码URL中的查询部分。这是调用:func:`url_decode`解码查询参数的的便捷方法。
+        位置参数和关键字参数会不发生变化地传给:func:`url_decode`.
         """
         return url_decode(self.query, *args, **kwargs)
 
     def join(self, *args, **kwargs):
-        """Joins this URL with another one.  This is just a convenience
-        function for calling into :meth:`url_join` and then parsing the
-        return value again.
+        """使用另外一个URL连接这个URL。这个只是调用:meth:`url_join`的便捷函数，然后再次
+        解析返回的值。
         """
         return url_parse(url_join(self, *args, **kwargs))
 
     def to_url(self):
-        """Returns a URL string or bytes depending on the type of the
-        information stored.  This is just a convenience function
-        for calling :meth:`url_unparse` for this URL.
+        """根据存储的信息类型，返回字符类型或者字节类型的URL。这仅仅只是调用
+        :meth:`url_unparse`处理这个URL的便捷函数。
         """
         return url_unparse(self)
 
     def decode_netloc(self):
-        """Decodes the netloc part into a string."""
+        """解码网络地址部分成字符串。"""
         rv = _decode_idna(self.host or "")
 
         if ":" in rv:
@@ -183,49 +175,40 @@ class BaseURL(_URLTuple):
             )
         )
         if auth:
-            rv = "%s@%s" % (auth, rv)
+            rv = "%s@%s" % (auth, rv)  # username:passwd@host[:port]
         return rv
 
     def to_uri_tuple(self):
-        """Returns a :class:`BytesURL` tuple that holds a URI.  This will
-        encode all the information in the URL properly to ASCII using the
-        rules a web browser would follow.
+        """返回一个保存URI的:class:`BytesURL`的元组。使用浏览器遵循的规则将URL中所有
+        的信息编码成ASCII。
 
-        It's usually more interesting to directly call :meth:`iri_to_uri` which
-        will return a string.
+        通常直接调用返回字符串的:meth:`iri_to_uri`会更有意思。
         """
         return url_parse(iri_to_uri(self).encode("ascii"))
 
     def to_iri_tuple(self):
-        """Returns a :class:`URL` tuple that holds a IRI.  This will try
-        to decode as much information as possible in the URL without
-        losing information similar to how a web browser does it for the
-        URL bar.
+        """返回一个保存IRI的:class:`URL`元组。尝试对存在URL中尽可能多的信息进行编码而不
+        丢失与网页浏览器处理地址栏时的信息的相似性。
 
-        It's usually more interesting to directly call :meth:`uri_to_iri` which
-        will return a string.
+        通常直接调用返回字符串的:meth:`uri_to_iri`会更有意思。
         """
         return url_parse(uri_to_iri(self))
 
     def get_file_location(self, pathformat=None):
-        """Returns a tuple with the location of the file in the form
-        ``(server, location)``.  If the netloc is empty in the URL or
-        points to localhost, it's represented as ``None``.
+        """使用形如``(server, location)``的形式返回一个文件位置的元组。如果URL中的网络
+        地址为空或者指向的是localhost，那么它使用``None``来表示。
 
-        The `pathformat` by default is autodetection but needs to be set
-        when working with URLs of a specific system.  The supported values
-        are ``'windows'`` when working with Windows or DOS paths and
-        ``'posix'`` when working with posix paths.
+        默认情况下`pathformat`是自动检测的但是当处理特殊系统的URLs的时候，需要进行设置。
+        当处理系统是Windows或DOS paths的时候，支持的值是``'windows'``，当处理系统是posix
+        path的时候，支持的值是``'posix'``。
 
-        If the URL does not point to a local file, the server and location
-        are both represented as ``None``.
+        如果URL指向不是本地文件，服务器（server)和地址（location）都是用`None`表示。
 
-        :param pathformat: The expected format of the path component.
-                           Currently ``'windows'`` and ``'posix'`` are
-                           supported.  Defaults to ``None`` which is
-                           autodetect.
+        :param pathformat: 路径的格式。目前支持的值是``'windows'`` 和 ``'posix'``。默认为
+                           使用自动检测的`None`。
         """
         if self.scheme != "file":
+            # file:///path/to/a/file # posix path
             return None, None
 
         path = url_unquote(self.path)
@@ -244,10 +227,9 @@ class BaseURL(_URLTuple):
             import ntpath
 
             path = ntpath.normpath(path)
-            # Windows shared drives are represented as ``\\host\\directory``.
-            # That results in a URL like ``file://///host/directory``, and a
-            # path like ``///host/directory``. We need to special-case this
-            # because the path contains the hostname.
+            # Windows 共享驱动是使用``\\host\\director``来表示。
+            # 因此URL是现在样子的：``file:////host/director``，并且路径是像这样子的：
+            # ``///host/directory``。我们需要特殊情况是因为路径中包含主机名。
             if windows_share and host is None:
                 parts = path.lstrip("\\").split("\\", 1)
                 if len(parts) == 2:
@@ -269,18 +251,24 @@ class BaseURL(_URLTuple):
 
     def _split_netloc(self):
         if self._at in self.netloc:
+            # 分割网络地址
             return self.netloc.split(self._at, 1)
+        # 用户登录信息，网络地址
         return None, self.netloc
 
     def _split_auth(self):
         auth = self._split_netloc()[0]
         if not auth:
+            # (None, None)
             return None, None
         if self._colon not in auth:
+            # [username, None]
             return auth, None
+        # [username, password]
         return auth.split(self._colon, 1)
 
     def _split_host(self):
+        # 获取主机地址，网络端口
         rv = self._split_netloc()[1]
         if not rv:
             return None, None
@@ -303,9 +291,7 @@ class BaseURL(_URLTuple):
 
 @implements_to_string
 class URL(BaseURL):
-    """Represents a parsed URL.  This behaves like a regular tuple but
-    also has some extra attributes that give further insight into the
-    URL.
+    """表示一个解析后的URL。就像普通的元组一样但是也有一些能更进一步分析URL的额外属性。
     """
 
     __slots__ = ()
@@ -318,7 +304,7 @@ class URL(BaseURL):
         return self.to_url()
 
     def encode_netloc(self):
-        """Encodes the netloc part to an ASCII safe URL as bytes."""
+        """将网络地址部分编码为ASCII安全的URL作为字节。"""
         rv = self.ascii_host or ""
         if ":" in rv:
             rv = "[%s]" % rv
@@ -339,8 +325,7 @@ class URL(BaseURL):
         return to_native(rv)
 
     def encode(self, charset="utf-8", errors="replace"):
-        """Encodes the URL to a tuple made out of bytes.  The charset is
-        only being used for the path, query and fragment.
+        """编码URL成由字节构成的元组。字符集用于编码路径，查询和片段。
         """
         return BytesURL(
             self.scheme.encode("ascii"),
@@ -384,11 +369,13 @@ _unquote_maps = {frozenset(): _hextobyte}
 
 
 def _unquote_to_bytes(string, unsafe=""):
+    """转成自己类型
+    """
     if isinstance(string, text_type):
-        string = string.encode("utf-8")
+        string = string.encode("utf-8")  # utf-8表示
 
     if isinstance(unsafe, text_type):
-        unsafe = unsafe.encode("utf-8")
+        unsafe = unsafe.encode("utf-8")  # utf-8表示
 
     unsafe = frozenset(bytearray(unsafe))
     groups = iter(string.split(b"%"))
@@ -401,6 +388,7 @@ def _unquote_to_bytes(string, unsafe=""):
             h: b for h, b in _hextobyte.items() if b not in unsafe
         }
 
+    # 剔除不安全字符
     for group in groups:
         code = group[:2]
 
@@ -410,7 +398,8 @@ def _unquote_to_bytes(string, unsafe=""):
         else:
             result.append(37)  # %
             result.extend(group)
-
+        
+    # 转成字节类型
     return bytes(result)
 
 
@@ -429,6 +418,8 @@ def _url_encode_impl(obj, charset, encode_keys, sort, key):
 
 
 def _url_unquote_legacy(value, unsafe=""):
+    """传统的URL取消引用
+    """
     try:
         return url_unquote(value, charset="utf-8", errors="strict", unsafe=unsafe)
     except UnicodeError:
@@ -556,7 +547,7 @@ def url_quote(string, charset="utf-8", errors="strict", safe="/:", unsafe=""):
             rv.append(char)
         else:
             rv.extend(_bytetohex[char])
-    # 将字节数据转换自己，最后转换成原生字符串
+    # 将字节数据转换自己，最后转换成原始字符串
     return to_native(bytes(rv))
 
 
@@ -600,14 +591,12 @@ def url_unparse(components):
 
 
 def url_unquote(string, charset="utf-8", errors="replace", unsafe=""):
-    """URL decode a single string with a given encoding.  If the charset
-    is set to `None` no unicode decoding is performed and raw bytes
-    are returned.
+    """URL使用给定的编码类型解码一个字符串。如果字符集（charset）设置为`None`，则不执行unicode解码
+    操作，并且返回原始字节。
 
-    :param s: the string to unquote.
-    :param charset: the charset of the query string.  If set to `None`
-                    no unicode decoding will take place.
-    :param errors: the error handling for the charset decoding.
+    :param s: 取消引用的字符串。
+    :param charset: 查询字符串的字符集。如果设置为`None`，则不会发生unicode解码。
+    :param errors: 字符集解码时的错误处理。
     """
     rv = _unquote_to_bytes(string, unsafe)
     if charset is not None:

@@ -226,7 +226,7 @@ def get_input_stream(environ, safe_fallback=True):
 
 
 def get_query_string(environ):
-    """从WSGI环境变量中获取`QUERY_STRING`并返回。这也考虑到了Python3 环境中作为原生字符
+    """从WSGI环境变量中获取`QUERY_STRING`并返回。这也考虑到了Python3 环境中作为原始字符
     串的WSGI解码操作。返回的字符串被限制为只包含ASCII字符。
 
     .. versionadded:: 0.9

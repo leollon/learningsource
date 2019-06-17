@@ -95,7 +95,7 @@ if PY2:
         return tup
 
     def try_coerce_native(s):
-        """如果有可能，尝试强制将一个unicode字符串变成原生的。否则按照原来的unicode保留下来。
+        """如果有可能，尝试强制将一个unicode字符串变成原始的类型。否则按照原来的unicode保留下来。
         """
         try:
             return to_native(s)
