@@ -26,7 +26,9 @@ if PY2:
     iteritems = lambda d, *args, **kwargs: d.iteritems(*args, **kwargs)
 
     iterlists = lambda d, *args, **kwargs: d.iterlists(*args, **kwargs)
-    iterlistvalues = lambda d, *args, **kwargs: d.iterlistvalues(*args, **kwargs)
+    iterlistvalues = lambda d, *args, **kwargs: d.iterlistvalues(
+        *args, **kwargs
+    )
 
     int_to_byte = chr
     iter_bytes = iter
@@ -40,6 +42,7 @@ if PY2:
         >>> fix_tuple_repr(collections_abc.namedtuple("_URLTuple", ("scheme", "netloc", "path", "query", "fragments")))
         <class '__main__._URLTuple'>
         """
+
         def __repr__(self):
             cls = self.__class__
             return "%s(%s)" % (
@@ -139,7 +142,9 @@ else:
     iteritems = lambda d, *args, **kwargs: iter(d.items(*args, **kwargs))
 
     iterlists = lambda d, *args, **kwargs: iter(d.lists(*args, **kwargs))
-    iterlistvalues = lambda d, *args, **kwargs: iter(d.listvalues(*args, **kwargs))
+    iterlistvalues = lambda d, *args, **kwargs: iter(
+        d.listvalues(*args, **kwargs)
+    )
 
     int_to_byte = operator.methodcaller("to_bytes", 1, "big")
     iter_bytes = functools.partial(map, int_to_byte)
@@ -213,7 +218,10 @@ else:
 
 
 def to_unicode(
-    x, charset=sys.getdefaultencoding(), errors="strict", allow_none_charset=False
+    x,
+    charset=sys.getdefaultencoding(),
+    errors="strict",
+    allow_none_charset=False,
 ):
     """使用系统默认的编码对x进行解码
     """

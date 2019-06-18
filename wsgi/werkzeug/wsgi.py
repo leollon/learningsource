@@ -437,19 +437,16 @@ def extract_path_info(
 
 @implements_iterator
 class ClosingIterator(object):
-    """The WSGI specification requires that all middlewares and gateways
-    respect the `close` callback of the iterable returned by the application.
-    Because it is useful to add another close action to a returned iterable
-    and adding a custom iterable is a boring task this class can be used for
-    that::
+    """WSGI规范要求所有的中间件和网关遵守应用返回的可迭代对象的`close`回调。
+    因为往一个返回的可迭代对象添加另一个关闭操作很有用并且添加可自定义的可迭代对象是一项枯燥的
+    任务，这个类可以这样子使用：
 
         return ClosingIterator(app(environ, start_response), [cleanup_session,
                                                               cleanup_locals])
 
-    If there is just one close function it can be passed instead of the list.
+    如果只有一个关闭（close）函数而不是这个列表可以被传递。
 
-    A closing iterator is not needed if the application uses response objects
-    and finishes the processing if the response is started::
+    如果应用使用响应对象则不需要一个关闭的迭代器并且如果开始响应了，则结束处理过程：
 
         try:
             return response(environ, start_response)
@@ -484,41 +481,37 @@ class ClosingIterator(object):
 
 
 def wrap_file(environ, file, buffer_size=8192):
-    """Wraps a file.  This uses the WSGI server's file wrapper if available
-    or otherwise the generic :class:`FileWrapper`.
+    """包装一个文件。如果可用，则使用WSGI服务器的文件包装器，否则使用通用类
+    :class:`FileWrapper`。
 
     .. versionadded:: 0.5
 
-    If the file wrapper from the WSGI server is used it's important to not
-    iterate over it from inside the application but to pass it through
-    unchanged.  If you want to pass out a file wrapper inside a response
-    object you have to set :attr:`~BaseResponse.direct_passthrough` to `True`.
+    如果使用的是WSGI服务器的文件包装器，重要的是不要从应用内部进行迭代它而是保持不变地传递它。
+    如果想在一个响应对象内部往外传一个文件包装器，那么得设置
+    :attr:`~BaseResponse.direct_passthrough` 为True。
 
-    More information about file wrappers are available in :pep:`333`.
+    更多信息关于文件包装器查看:pep:`333`。
 
-    :param file: a :class:`file`-like object with a :meth:`~file.read` method.
-    :param buffer_size: number of bytes for one iteration.
+    :param file: 一个含有:meth:`~file.read`方法的:class:`file-like`的对象。
+    :param buffer_size: 一次迭代的字节数量。
     """
     return environ.get("wsgi.file_wrapper", FileWrapper)(file, buffer_size)
 
 
 @implements_iterator
 class FileWrapper(object):
-    """This class can be used to convert a :class:`file`-like object into
-    an iterable.  It yields `buffer_size` blocks until the file is fully
-    read.
+    """这个类用于将一个:class:`file-like`对象转换成一个可迭代对象。它生成`buffer_size`
+    块知道文件完成地读取完。
 
-    You should not use this class directly but rather use the
-    :func:`wrap_file` function that uses the WSGI server's file wrapper
-    support if it's available.
+    不应该直接使用这个类，而是如果WSGI服务器的文件包装器可用，则使用能够调用WSGI服务器提供的文件
+    包装器的:func:`wrap_file`函数。
 
     .. versionadded:: 0.5
 
-    If you're using this object together with a :class:`BaseResponse` you have
-    to use the `direct_passthrough` mode.
+    如果将这个对象和:class:`BaseResponse`一起使用，得使用`direct_passthrough`模式。
 
-    :param file: a :class:`file`-like object with a :meth:`~file.read` method.
-    :param buffer_size: number of bytes for one iteration.
+    :param file: 一个有:meth:`~file.read`方法的相似于:class:`file`的对象。
+    :param buffer_size: 一次迭代的字节数量。
     """
 
     def __init__(self, file, buffer_size=8192):

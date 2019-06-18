@@ -349,12 +349,11 @@ class BytesURL(BaseURL):
         return self.to_url().decode("utf-8", "replace")
 
     def encode_netloc(self):
-        """Returns the netloc unchanged as bytes."""
+        """返回未改变的字节类型的网络地址"""
         return self.netloc
 
     def decode(self, charset="utf-8", errors="replace"):
-        """Decodes the URL to a tuple made out of strings.  The charset is
-        only being used for the path, query and fragment.
+        """编码URL成由字符串组成的元组。只用用于编码路径，查询和片段的字符集。
         """
         return URL(
             self.scheme.decode("ascii"),
@@ -451,6 +450,9 @@ def url_parse(url, scheme=None, allow_fragments=True):
             scheme, url = url[:i].lower(), rest  # 协议方案，URL
 
     if url[:2] == s("//"):
+        # //werkzeug.xxxx.xxx/search?q=xxx
+        # //werkzeug.xxxx.xxx?page=xx
+        # //werkzeug.xxx.xxx#about
         delim = len(url)
         for c in s("/?#"):
             wdelim = url.find(c, 2)
@@ -463,13 +465,14 @@ def url_parse(url, scheme=None, allow_fragments=True):
             raise ValueError("Invalid IPv6 URL")
 
     if allow_fragments and s("#") in url:
-        # url是想这样子的/path/to/post#comments
+        # url是像这样子的/path/to/post#comments
         url, fragment = url.split(s("#"), 1)  # 仅分割一次，获取comments
     if s("?") in url:
-        # url是想这个样子的/path/to/search?q=xxx...
+        # url是像这个样子的/path/to/search?q=xxx...
         url, query = url.split(s("?"), 1)  # 仅分割一次，获取q=xxx...
 
     result_type = URL if is_text_based else BytesURL
+    # 具名元组
     return result_type(scheme, netloc, url, query, fragment)
 
 
@@ -573,10 +576,12 @@ def url_unparse(components):
     url = s("")
 
     # 通常来说，使用同样的方式对待file:///和file:/x，浏览器似乎也是这么干的。
-    # 这也允许忽略netloc或区分空白字符串与丢失netloc的协议注册。
+    # 这也允许我们忽略netloc的使用或得区分空白字符串与丢失netloc的协议方案注册。
     if netloc or (scheme and path.startswith(s("/"))):
         if path and path[:1] != s("/"):
             path = s("/") + path
+        # //werkzeug.xxx.xx/path
+        # ///path/to/file
         url = s("//") + (netloc or s("")) + path
     elif path:
         url += path
@@ -963,12 +968,11 @@ def url_encode_stream(
 
 
 def url_join(base, url, allow_fragments=True):
-    """Join a base URL and a possibly relative URL to form an absolute
-    interpretation of the latter.
+    """加入基本URL和可能的相对URL来构成后者绝对解释。
 
-    :param base: the base URL for the join operation.
-    :param url: the URL to join.
-    :param allow_fragments: indicates whether fragments should be allowed.
+    :param base: 加入操作使用的URL
+    :param url: 被加入的URL
+    :param allow_fragments: 表示是否应该允许存在片段
     """
     if isinstance(base, tuple):
         base = url_unparse(base)
@@ -985,7 +989,7 @@ def url_join(base, url, allow_fragments=True):
 
     bscheme, bnetloc, bpath, bquery, bfragment = url_parse(
         base, allow_fragments=allow_fragments
-    )
+    )  # 字节类型
     scheme, netloc, path, query, fragment = url_parse(url, bscheme, allow_fragments)
     if scheme != bscheme:
         return url
@@ -994,39 +998,48 @@ def url_join(base, url, allow_fragments=True):
     netloc = bnetloc
 
     if path[:1] == s("/"):
+        # /path/to/
+        # //path/to/
         segments = path.split(s("/"))
     elif not path:
+        # path = b'path/to/'
+        # path = b'path/'
         segments = bpath.split(s("/"))
         if not query:
             query = bquery
     else:
         segments = bpath.split(s("/"))[:-1] + path.split(s("/"))
 
-    # If the rightmost part is "./" we want to keep the slash but
-    # remove the dot.
+    # segments 是一个列表
+    # 如果最右部分是"./"，我们想要保留斜杠，但是得移除点号。
     if segments[-1] == s("."):
         segments[-1] = s("")
 
-    # Resolve ".." and "."
+    # 解析“..” 和 “.”
     segments = [segment for segment in segments if segment != s(".")]
     while 1:
         i = 1
         n = len(segments) - 1
         while i < n:
+            # n > 1，进行循环
             if segments[i] == s("..") and segments[i - 1] not in (s(""), s("..")):
+                # 当前索引指向的列表中的元素等于s("..")并且当前索引前面的的元素不是 s("")
+                # 或 s("..")，则删除索引 i-1 到 i 之间的元素，也包括 i 对应的元素。
                 del segments[i - 1 : i + 1]
                 break
             i += 1
         else:
+            # i == n，退出外层循环
             break
 
-    # Remove trailing ".." if the URL is absolute
-    unwanted_marker = [s(""), s("..")]
+    # 如果URL是绝对地址的，则移除尾部的“..”。
+    unwanted_marker = [s(""), s("..")]  #
     while segments[:2] == unwanted_marker:
+        # len(segments) == 2时
         del segments[1]
 
-    path = s("/").join(segments)
-    return url_unparse((scheme, netloc, path, query, fragment))
+    path = s("/").join(segments)  # 连接列表中的元素
+    return url_unparse((scheme, netloc, path, query, fragment))  # 返会url
 
 
 class Href(object):
