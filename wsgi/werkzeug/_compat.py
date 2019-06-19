@@ -116,6 +116,7 @@ if PY2:
         return s.encode(charset, errors)
 
     def to_bytes(x, charset=sys.getdefaultencoding(), errors="strict"):
+        """转成字节类型数据"""
         if x is None:
             return None
         if isinstance(x, (bytes, bytearray, buffer)):
@@ -202,6 +203,7 @@ else:
         return s.decode("latin1", errors)
 
     def to_bytes(x, charset=sys.getdefaultencoding(), errors="strict"):
+        """转成字节类型数据"""
         if x is None:
             return None
         if isinstance(x, (bytes, bytearray, memoryview)):  # noqa

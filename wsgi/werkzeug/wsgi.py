@@ -550,20 +550,16 @@ class FileWrapper(object):
 
 @implements_iterator
 class _RangeWrapper(object):
-    # private for now, but should we make it public in the future ?
+    # 现在为私有类，但是未来是否应该公开？
 
-    """This class can be used to convert an iterable object into
-    an iterable that will only yield a piece of the underlying content.
-    It yields blocks until the underlying stream range is fully read.
-    The yielded blocks will have a size that can't exceed the original
-    iterator defined block size, but that can be smaller.
+    """这个类用来将一个可迭代对象转换成一个只生成一小部分底层内容的可迭代对象。一直生成块直到
+    完整地读取完底层流范围。生成的块大小不能超过初始迭代器定义的块大小，但是可小于。
 
-    If you're using this object together with a :class:`BaseResponse` you have
-    to use the `direct_passthrough` mode.
+    如果将这个对象和:class:`BaseResponse`一起使用，那得设置`direct_passthrough`模式。
 
-    :param iterable: an iterable object with a :meth:`__next__` method.
-    :param start_byte: byte from which read will start.
-    :param byte_range: how many bytes to read.
+    :param iterable: 含有:meth:`__next__`方法的可迭代对象。
+    :param start_byte: 开始读取的字节
+    :param byte_range: 要读取的字节数量。
     """
 
     def __init__(self, iterable, start_byte=0, byte_range=None):
@@ -590,17 +586,19 @@ class _RangeWrapper(object):
             raise
 
     def _first_iteration(self):
+        # 首次从迭代对象读取数据
         chunk = None
         if self.seekable:
             self.iterable.seek(self.start_byte)
-            self.read_length = self.iterable.tell()
-            contextual_read_length = self.read_length
+            self.read_length = self.iterable.tell()  # 已经读取的长度
+            contextual_read_length = self.read_length  # 读取的上下文长度
         else:
             while self.read_length <= self.start_byte:
                 chunk = self._next_chunk()
             if chunk is not None:
                 chunk = chunk[self.start_byte - self.read_length :]
             contextual_read_length = self.start_byte
+        # 读取的块，读取的上下文长度
         return chunk, contextual_read_length
 
     def _next(self):
@@ -609,10 +607,15 @@ class _RangeWrapper(object):
         chunk = None
         contextual_read_length = self.read_length
         if self.read_length == 0:
+            # 第一次读取数据
             chunk, contextual_read_length = self._first_iteration()
         if chunk is None:
+            # 读取下一块
             chunk = self._next_chunk()
         if self.end_byte is not None and self.read_length >= self.end_byte:
+            # 读取迭代对象的末尾了
+            # 假设read_length = 5, end_byte = 5，此时读取的上下文长度
+            # contextual_read_length为 为 4。
             self.end_reached = True
             return chunk[: self.end_byte - contextual_read_length]
         return chunk
@@ -630,7 +633,7 @@ class _RangeWrapper(object):
 
 
 def _make_chunk_iter(stream, limit, buffer_size):
-    """Helper for the line and chunk iter functions."""
+    """用于行和块迭代函数的生成器辅助。"""
     if isinstance(stream, (bytes, bytearray, text_type)):
         raise TypeError(
             "Passed a string or byte object instead of true iterator or stream."
@@ -651,38 +654,32 @@ def _make_chunk_iter(stream, limit, buffer_size):
 
 
 def make_line_iter(stream, limit=None, buffer_size=10 * 1024, cap_at_buffer=False):
-    """Safely iterates line-based over an input stream.  If the input stream
-    is not a :class:`LimitedStream` the `limit` parameter is mandatory.
+    """安全地按行迭代输入流。如果输入流不是:class:`LimitedStream`的对象，那么参数`limit`
+    是要强制进行赋值的。
 
-    This uses the stream's :meth:`~file.read` method internally as opposite
-    to the :meth:`~file.readline` method that is unsafe and can only be used
-    in violation of the WSGI specification.  The same problem applies to the
-    `__iter__` function of the input stream which calls :meth:`~file.readline`
-    without arguments.
+    内部地使用流的:meth:`~file.read`而不是不安全的:meth:`~file.readine`方法并且只能在违
+    反WSGI规范的时候使用。同样的问题也适用于会调用没有参数的:meth:`~file.readline`方法的
+    输入流的`__iter__`函数。
 
-    If you need line-by-line processing it's strongly recommended to iterate
-    over the input stream using this helper function.
+    如果需要一行接一行地处理，强烈推荐使用这个辅助函数来迭代输入流。
 
     .. versionchanged:: 0.8
-       This function now ensures that the limit was reached.
+       这个函数现在确保这个限制是可以到达的。
 
     .. versionadded:: 0.9
-       added support for iterators as input stream.
+       添加支持输入流的迭代器。
 
     .. versionadded:: 0.11.10
-       added support for the `cap_at_buffer` parameter.
+       添加`cap_at_buffer`参数支持。
 
-    :param stream: the stream or iterate to iterate over.
-    :param limit: the limit in bytes for the stream.  (Usually
-                  content length.  Not necessary if the `stream`
-                  is a :class:`LimitedStream`.
-    :param buffer_size: The optional buffer size.
-    :param cap_at_buffer: if this is set chunks are split if they are longer
-                          than the buffer size.  Internally this is implemented
-                          that the buffer size might be exhausted by a factor
-                          of two however.
+    :param stream: 迭代的流或可迭代对象。
+    :param limit: 限制流的字节。（通常是内容的长度。如果`stream`是
+                  :class:`LimitedStream`的类型，那么就没有必要。）
+    :param buffer_size: 可选的缓冲区大小。
+    :param cap_at_buffer: 如果设置了这个参数，那么如果块的长度长过缓冲区大小，块将会被分割。
+                          然而，内部实现的缓冲区大小可能被消耗两倍。
     """
-    _iter = _make_chunk_iter(stream, limit, buffer_size)
+    _iter = _make_chunk_iter(stream, limit, buffer_size)  # 生成器
 
     first_item = next(_iter, "")
     if not first_item:
@@ -702,9 +699,12 @@ def make_line_iter(stream, limit=None, buffer_size=10 * 1024, cap_at_buffer=Fals
         while 1:
             new_data = next(_iter, "")
             if not new_data:
+                # new_data = ""
                 break
             new_buf = []
             buf_size = 0
+            # str.splitlines(True) 按行（根据换行符）进行分割，返回一个列表，True为保留换行符，空或
+            # False则不保留，使用''代替原来的换行符。
             for item in chain(buffer, new_data.splitlines(True)):
                 new_buf.append(item)
                 buf_size += len(item)
@@ -721,8 +721,7 @@ def make_line_iter(stream, limit=None, buffer_size=10 * 1024, cap_at_buffer=Fals
         if buffer:
             yield _join(buffer)
 
-    # This hackery is necessary to merge 'foo\r' and '\n' into one item
-    # of 'foo\r\n' if we were unlucky and we hit a chunk boundary.
+    # 如果不凑巧，到达了块的边界，有必要将'foo\r'和'\n'两个合并成一个'foo\r\n'。
     previous = empty
     for item in _iter_basic_lines():
         if item == lf and previous[-1:] == cr:
@@ -738,43 +737,42 @@ def make_line_iter(stream, limit=None, buffer_size=10 * 1024, cap_at_buffer=Fals
 def make_chunk_iter(
     stream, separator, limit=None, buffer_size=10 * 1024, cap_at_buffer=False
 ):
-    """Works like :func:`make_line_iter` but accepts a separator
-    which divides chunks.  If you want newline based processing
-    you should use :func:`make_line_iter` instead as it
-    supports arbitrary newline markers.
+    """功能类似于:func:`make_line_iter`，但是接收多接手一个分割块的分割符。如果想基于新行
+    处理，则应该使用:func:`make_line_iter`来代替，因为它支持任意的换行标记。
 
     .. versionadded:: 0.8
 
     .. versionadded:: 0.9
-       added support for iterators as input stream.
+       添加支持输入流的迭代器。
 
     .. versionadded:: 0.11.10
-       added support for the `cap_at_buffer` parameter.
+       添加`cap_at_buffer`参数。
 
-    :param stream: the stream or iterate to iterate over.
-    :param separator: the separator that divides chunks.
-    :param limit: the limit in bytes for the stream.  (Usually
-                  content length.  Not necessary if the `stream`
-                  is otherwise already limited).
-    :param buffer_size: The optional buffer size.
-    :param cap_at_buffer: if this is set chunks are split if they are longer
+    :param stream: 要迭代的流或可迭代对象
+    :param separator: 分割块的分割符。
+    :param limit: 流的限制字节。（通常是内容的长度。否则如果流已经被限制了，
+                  那么就没有必要了。）
+    :param buffer_size: 可选的缓冲区大小。
+    :param cap_at_buffer: 如果设置了这个参数，如果块的长度大于缓冲区大小，块会被分割。
+                          内部实现的缓冲区大小可能被消耗两倍。if this is set chunks are split if they are longer
                           than the buffer size.  Internally this is implemented
                           that the buffer size might be exhausted by a factor
                           of two however.
     """
-    _iter = _make_chunk_iter(stream, limit, buffer_size)
+    _iter = _make_chunk_iter(stream, limit, buffer_size)  # 迭代器
 
-    first_item = next(_iter, "")
+    first_item = next(_iter, "")  # 取第一块，或者等于""
     if not first_item:
         return
 
     _iter = chain((first_item,), _iter)
     if isinstance(first_item, text_type):
-        separator = to_unicode(separator)
+        # str 类型
+        separator = to_unicode(separator)  # 编码分割符
         _split = re.compile(r"(%s)" % re.escape(separator)).split
         _join = u"".join
     else:
-        separator = to_bytes(separator)
+        separator = to_bytes(separator)  # 转成字节类型
         _split = re.compile(b"(" + re.escape(separator) + b")").split
         _join = b"".join
 
@@ -854,22 +852,17 @@ class LimitedStream(io.IOBase):
         return self._read(0)
 
     def on_disconnect(self):
-        """What should happen if a disconnect is detected?  The return
-        value of this function is returned from read functions in case
-        the client went away.  By default a
-        :exc:`~werkzeug.exceptions.ClientDisconnected` exception is raised.
+        """如果断开链接被探测到，应该发生什么？万一客户端断开了，这个函数的返回值由读取函数
+        返回。默认引发:exc:`~werkzeug.exceptions.ClientDisconnected`异常。
         """
         from .exceptions import ClientDisconnected
 
         raise ClientDisconnected()
 
     def exhaust(self, chunk_size=1024 * 64):
-        """Exhaust the stream.  This consumes all the data left until the
-        limit is reached.
+        """读取流。读取所有剩下来的数据直到到达限制的值。
 
-        :param chunk_size: the size for a chunk.  It will read the chunk
-                           until the stream is exhausted and throw away
-                           the results.
+        :param chunk_size: 块的大小。读取块直到流被读取完并且返回结果。
         """
         to_read = self.limit - self._pos
         chunk = chunk_size
@@ -879,13 +872,13 @@ class LimitedStream(io.IOBase):
             to_read -= chunk
 
     def read(self, size=None):
-        """Read `size` bytes or if size is not provided everything is read.
+        """读取字节的数量或如果size为None，读取所有的内容。
 
-        :param size: the number of bytes read.
+        :param size: 读取的字节数量。
         """
         if self._pos >= self.limit:
             return self.on_exhausted()
-        if size is None or size == -1:  # -1 is for consistence with file
+        if size is None or size == -1:  # -1 是为了与文件一致
             size = self.limit
         to_read = min(self.limit - self._pos, size)
         try:
@@ -898,7 +891,7 @@ class LimitedStream(io.IOBase):
         return read
 
     def readline(self, size=None):
-        """Reads one line from the stream."""
+        """从流中读取一行。"""
         if self._pos >= self.limit:
             return self.on_exhausted()
         if size is None:
@@ -915,10 +908,8 @@ class LimitedStream(io.IOBase):
         return line
 
     def readlines(self, size=None):
-        """Reads a file into a list of strings.  It calls :meth:`readline`
-        until the file is read to the end.  It does support the optional
-        `size` argument if the underlaying stream supports it for
-        `readline`.
+        """读取一个文件构成一个字符串列表。调用:meth:`readline`读取直到读到文件结尾。支持
+        可选的`size`参数，如果底层流`readline`支持这个参数的话。
         """
         last_pos = self._pos
         result = []
@@ -937,7 +928,7 @@ class LimitedStream(io.IOBase):
         return result
 
     def tell(self):
-        """Returns the position of the stream.
+        """返回流的位置。
 
         .. versionadded:: 0.9
         """
