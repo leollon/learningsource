@@ -3,15 +3,11 @@
     werkzeug.http
     ~~~~~~~~~~~~~
 
-    Werkzeug comes with a bunch of utilities that help Werkzeug to deal with
-    HTTP data.  Most of the classes and functions provided by this module are
-    used by the wrappers, but they are useful on their own, too, especially if
-    the response and request objects are not used.
+    Werkzeug的许多实用程序帮助Werkzeug处理HTTP数据。这个模块提供的大部分类和函数都被包装器
+    使用到，但是它们自身也是有用处的，尤其是如果响应和请求对象不被使用的时候。
 
-    This covers some of the more HTTP centric features of WSGI, some other
-    utilities such as cookie handling are documented in the `werkzeug.utils`
-    module.
-
+    这个涵盖了一些WSGI更中心的HTTP特性，一些其他实用程序比如cookie处理被放在
+    `werkzeug.utils`模块中。
 
     :copyright: 2007 Pallets
     :license: BSD-3-Clause
@@ -49,55 +45,58 @@ except ImportError:
     from urllib2 import parse_http_list as _parse_list_header
     from urllib2 import unquote as _unquote
 
-_cookie_charset = "latin1"
-_basic_auth_charset = "utf-8"
-# for explanation of "media-range", etc. see Sections 5.3.{1,2} of RFC 7231
+_cookie_charset = "latin1"  # cookie 字符集
+_basic_auth_charset = "utf-8"  # 基本授权字符集
+# “媒体-范围”等的解释，参阅RFC7231 5.3.{1,2}部分
+# Accept: text/plain; q=0.5, text/html,text/x-dvi; q=0.8, text/x-c
 _accept_re = re.compile(
     r"""
-    (                       # media-range capturing-parenthesis
+    (                       # 媒体范围捕捉括号
       [^\s;,]+              # type/subtype
       (?:[ \t]*;[ \t]*      # ";"
         (?:                 # parameter non-capturing-parenthesis
-          [^\s;,q][^\s;,]*  # token that doesn't start with "q"
-        |                   # or
-          q[^\s;,=][^\s;,]* # token that is more than just "q"
+          [^\s;,q][^\s;,]*  # 不是"q"开头的token
+        |                   # 或是
+          q[^\s;,=][^\s;,]* # 不仅仅是"q"的token
         )
-      )*                    # zero or more parameters
-    )                       # end of media-range
-    (?:[ \t]*;[ \t]*q=      # weight is a "q" parameter
-      (\d*(?:\.\d+)?)       # qvalue capturing-parentheses
-      [^,]*                 # "extension" accept params: who cares?
-    )?                      # accept params are optional
+      )*                    # 零或N次
+    )                       # 媒体范围结束
+    (?:[ \t]*;[ \t]*q=      # 权重参数"q"
+      (\d*(?:\.\d+)?)       # q值捕捉括号
+      [^,]*                 # “扩展”accept参数：管它呢？
+    )?                      # accept 参数是可选的
     """,
     re.VERBOSE,
 )
 _token_chars = frozenset(
     "!#$%&'*+-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ^_`abcdefghijklmnopqrstuvwxyz|~"
 )
+# HTTP中的etag字段
 _etag_re = re.compile(r'([Ww]/)?(?:"(.*?)"|(.*?))(?:\s*,\s*|$)')
 _unsafe_header_chars = set('()<>@,;:"/[]?={} \t')
+# 可选的HTTP头部信息
 _option_header_piece_re = re.compile(
     r"""
-    ;\s*,?\s*  # newlines were replaced with commas
+    ;\s*,?\s*  # 使用逗号代替换行符号
     (?P<key>
-        "[^"\\]*(?:\\.[^"\\]*)*"  # quoted string
+        "[^"\\]*(?:\\.[^"\\]*)*"  # 被引用的字符串
     |
         [^\s;,=*]+  # token
     )
-    (?:\*(?P<count>\d+))?  # *1, optional continuation index
+    (?:\*(?P<count>\d+))?  # *1，可选的连续索引
     \s*
-    (?:  # optionally followed by =value
-        (?:  # equals sign, possibly with encoding
-            \*\s*=\s*  # * indicates extended notation
-            (?:  # optional encoding
+    (?:  # 可选的伴随有=value
+        (?:  # 等号，可能含有编码信息
+            \*\s*=\s*  # * 意味着扩展的注记
+            (?:  # 可选编码信息
                 (?P<encoding>[^\s]+?)
                 '(?P<language>[^\s]*?)'
             )?
         |
-            =\s*  # basic notation
+            =\s*  # 基本的注记
         )
         (?P<value>
-            "[^"\\]*(?:\\.[^"\\]*)*"  # quoted string
+            "[^"\\]*(?:\\.[^"\\]*)*"  # 引用的字符串
         |
             [^;,]+  # token
         )?
@@ -108,6 +107,7 @@ _option_header_piece_re = re.compile(
 )
 _option_header_start_mime_type = re.compile(r",\s*([^;,\s]+)([;,]\s*.+)?")
 
+# 关于实体的HTTP首部
 _entity_headers = frozenset(
     [
         "allow",
@@ -122,6 +122,7 @@ _entity_headers = frozenset(
         "last-modified",
     ]
 )
+# 关于网络连接传输层中的HTTP头部
 _hop_by_hop_headers = frozenset(
     [
         "connection",
@@ -135,7 +136,7 @@ _hop_by_hop_headers = frozenset(
     ]
 )
 
-
+# HTTP状态码
 HTTP_STATUS_CODES = {
     100: "Continue",
     101: "Switching Protocols",
@@ -198,7 +199,7 @@ HTTP_STATUS_CODES = {
 
 
 def wsgi_to_bytes(data):
-    """coerce wsgi unicode represented bytes to real ones"""
+    """强制WSGI unicode 数据使用字节表示"""
     if isinstance(data, bytes):
         return data
     return data.encode("latin1")  # XXX: utf8 fallback?
@@ -207,62 +208,57 @@ def wsgi_to_bytes(data):
 def bytes_to_wsgi(data):
     assert isinstance(data, bytes), "data must be bytes"
     if isinstance(data, str):
+        # unicode
         return data
     else:
         return data.decode("latin1")
 
 
 def quote_header_value(value, extra_chars="", allow_token=True):
-    """Quote a header value if necessary.
+    """如果有必要，则引用一个头部。
 
     .. versionadded:: 0.5
 
-    :param value: the value to quote.
-    :param extra_chars: a list of extra characters to skip quoting.
-    :param allow_token: if this is enabled token values are returned
-                        unchanged.
+    :param value: 引用的值。
+    :param extra_chars: 一个用于跳过引用的额外字符序列。
+    :param allow_token: 如果为True，token值原样返回。
     """
     if isinstance(value, bytes):
         value = bytes_to_wsgi(value)
     value = str(value)
     if allow_token:
-        token_chars = _token_chars | set(extra_chars)
+        token_chars = _token_chars | set(extra_chars) # 取并集
         if set(value).issubset(token_chars):
             return value
     return '"%s"' % value.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def unquote_header_value(value, is_filename=False):
-    r"""Unquotes a header value.  (Reversal of :func:`quote_header_value`).
-    This does not use the real unquoting but what browsers are actually
-    using for quoting.
+    r"""取消引用一个头部的值。（与:func:`quote_header_header`函数功能相反。）
+    不是真正地取消引用，而是实际上浏览器用什么去引用。
 
     .. versionadded:: 0.5
 
-    :param value: the header value to unquote.
+    :param value: 取消应用的头部值。
     """
     if value and value[0] == value[-1] == '"':
-        # this is not the real unquoting, but fixing this so that the
-        # RFC is met will result in bugs with internet explorer and
-        # probably some other browsers as well.  IE for example is
-        # uploading files with "C:\foo\bar.txt" as filename
+        # 这不是真正的不引用，而是修复它，目的是满足RFC，这在IE中会产生bugs并且在其他浏览器
+        # 中也有可能。例如，IE上传文件时使用"C:\foo\bar.txt"作为文件名。
         value = value[1:-1]
 
-        # if this is a filename and the starting characters look like
-        # a UNC path, then just return the value without quotes.  Using the
-        # replace sequence below on a UNC path has the effect of turning
-        # the leading double slash into a single slash and then
-        # _fix_ie_filename() doesn't work correctly.  See #458.
+        # 如果是一个文件并且开始字符看起来像是UNC路径，那么不加引号而直接返回。在UNC路径上
+        # 使用下面的替换序列会将头两个斜杠变成单个杠，然后_fix_ie_filename() 不能正确的工
+        # 作。参阅 #458
         if not is_filename or value[:2] != "\\\\":
             return value.replace("\\\\", "\\").replace('\\"', '"')
     return value
 
 
 def dump_options_header(header, options):
-    """The reverse function to :func:`parse_options_header`.
+    """:func:`parse_options_header`的相反函数.
 
-    :param header: the header to dump
-    :param options: a dict of options to append.
+    :param header: 要转存的头部
+    :param options: 要添加的选项字典
     """
     segments = []
     if header is not None:
@@ -276,19 +272,18 @@ def dump_options_header(header, options):
 
 
 def dump_header(iterable, allow_token=True):
-    """Dump an HTTP header again.  This is the reversal of
-    :func:`parse_list_header`, :func:`parse_set_header` and
-    :func:`parse_dict_header`.  This also quotes strings that include an
-    equals sign unless you pass it as dict of key, value pairs.
+    """再次转存HTTP头部。:func:`parse_list_header`，:func:`parse_set_header`和
+    :func:`parse_dict_header`的相反函数。引用包含等号的字符串，除非使用键值对的字典进行传
+    递。
 
     >>> dump_header({'foo': 'bar baz'})
     'foo="bar baz"'
     >>> dump_header(('foo', 'bar baz'))
     'foo, "bar baz"'
 
-    :param iterable: the iterable or dict of values to quote.
-    :param allow_token: if set to `False` tokens as values are disallowed.
-                        See :func:`quote_header_value` for more details.
+    :param iterable: 要引用的可迭代对象或键值对字典。
+    :param allow_token: 如果设置为`False`，则不允许tokens值。
+                        参阅:func:`quote_header_value`获取更多细节。
     """
     if isinstance(iterable, dict):
         items = []
@@ -305,25 +300,22 @@ def dump_header(iterable, allow_token=True):
 
 
 def parse_list_header(value):
-    """Parse lists as described by RFC 2068 Section 2.
+    """根据RFC 2068 Section 2描述来解析列表。
 
-    In particular, parse comma-separated lists where the elements of
-    the list may include quoted-strings.  A quoted-string could
-    contain a comma.  A non-quoted string could have quotes in the
-    middle.  Quotes are removed automatically after parsing.
+    特别地，解析逗号分割的且列表中的元素可能含有引用的字符串的列表。加引号的字符串可能包含逗号。
+    未加引号的字符串可能有引号在中间。在解析之后引号被自动移除。
 
-    It basically works like :func:`parse_set_header` just that items
-    may appear multiple times and case sensitivity is preserved.
+    基本上像:func:`parse_set_header`一样的功能，只是那一项可能会出现多次并且区分大小的保留
+    了下来。
 
-    The return value is a standard :class:`list`:
+    返回值是一个标准的:class:`list`：
 
     >>> parse_list_header('token, "quoted value"')
     ['token', 'quoted value']
 
-    To create a header from the :class:`list` again, use the
-    :func:`dump_header` function.
+    为了再次从这个:class:`list`创建出一个头部，需使用:func:`dump_header`函数。
 
-    :param value: a string with a list header.
+    :param value: 含有头部列表在其中的字符串
     :return: :class:`list`
     """
     result = []
