@@ -239,7 +239,7 @@ def unquote_header_value(value, is_filename=False):
 
     .. versionadded:: 0.5
 
-    :param value: 取消应用的头部值。
+    :param value: 取消引用的头部值。
     """
     if value and value[0] == value[-1] == '"':
         # 这不是真正的不引用，而是修复它，目的是满足RFC，这在IE中会产生bugs并且在其他浏览器
@@ -247,7 +247,7 @@ def unquote_header_value(value, is_filename=False):
         value = value[1:-1]
 
         # 如果是一个文件并且开始字符看起来像是UNC路径，那么不加引号而直接返回。在UNC路径上
-        # 使用下面的替换序列会将头两个斜杠变成单个杠，然后_fix_ie_filename() 不能正确的工
+        # 使用下面的替换序列会将头两个斜杠变成单个杠，那么_fix_ie_filename()不能正确的工
         # 作。参阅 #458
         if not is_filename or value[:2] != "\\\\":
             return value.replace("\\\\", "\\").replace('\\"', '"')
@@ -258,7 +258,7 @@ def dump_options_header(header, options):
     """:func:`parse_options_header`的相反函数.
 
     :param header: 要转存的头部
-    :param options: 要添加的选项字典
+    :param options: 要添加的选项的字典
     """
     segments = []
     if header is not None:
@@ -321,15 +321,15 @@ def parse_list_header(value):
     result = []
     for item in _parse_list_header(value):
         if item[:1] == item[-1:] == '"':
+            # '"quoted value"' -> quoted value
             item = unquote_header_value(item[1:-1])
         result.append(item)
     return result
 
 
 def parse_dict_header(value, cls=dict):
-    """Parse lists of key, value pairs as described by RFC 2068 Section 2 and
-    convert them into a python dict (or any other mapping object created from
-    the type with a dict like interface provided by the `cls` argument):
+    """根据RFC 2068 Section 2 的描述解析键值对列表并且将它们转换成python字典（或者通过
+    含有一个dict的类型，就像是通过`cls`参数来提供的接口一样，来创建的任何其他映射对象）：
 
     >>> d = parse_dict_header('foo="is a fish", bar="as well"')
     >>> type(d) is dict
@@ -337,19 +337,18 @@ def parse_dict_header(value, cls=dict):
     >>> sorted(d.items())
     [('bar', 'as well'), ('foo', 'is a fish')]
 
-    If there is no value for a key it will be `None`:
+    如果一个键没有对应的值，那么这个键对应的值是`None`：
 
     >>> parse_dict_header('key_without_value')
     {'key_without_value': None}
 
-    To create a header from the :class:`dict` again, use the
-    :func:`dump_header` function.
+    可以使用:func:`dump_header`函数再次从:class:`dict`创建出一个头部。
 
     .. versionchanged:: 0.9
-       Added support for `cls` argument.
+       添加`cls`参数支持。
 
-    :param value: a string with a dict header.
-    :param cls: callable to use for storage of parsed results.
+    :param value: 含有字典头部的字符串
+    :param cls: 用于解析后的结果存储的可调用对象callable to use for storage of parsed results.
     :return: an instance of `cls`
     """
     result = cls()
@@ -368,27 +367,26 @@ def parse_dict_header(value, cls=dict):
 
 
 def parse_options_header(value, multiple=False):
-    """Parse a ``Content-Type`` like header into a tuple with the content
-    type and the options:
+    """将像``Content-Type``这样的HTTP头部解析成包含内容类型和选项的元组：
 
     >>> parse_options_header('text/html; charset=utf8')
     ('text/html', {'charset': 'utf8'})
 
-    This should not be used to parse ``Cache-Control`` like headers that use
-    a slightly different format.  For these headers use the
-    :func:`parse_dict_header` function.
+    不应该使用这个函数来解析像``Cache-control``这样子稍微使用了不同格式的HTTP头部。对于这
+    种头部，使用:func:``parse_dict_header``函数。
 
     .. versionchanged:: 0.15
-        :rfc:`2231` parameter continuations are handled.
+        :rfc:`2231` 处理参数连续
 
     .. versionadded:: 0.5
 
-    :param value: the header to parse.
-    :param multiple: Whether try to parse and return multiple MIME types
+    :param value: 要解析的头部。
+    :param multiple: 尝试解析并且返回多个MIME types
     :return: (mimetype, options) or (mimetype, options, mimetype, options, …)
              if multiple=True
     """
     if not value:
+        # value == None or value == ""
         return "", {}
 
     result = []
