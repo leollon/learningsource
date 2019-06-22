@@ -391,25 +391,24 @@ def parse_options_header(value, multiple=False):
 
     result = []
 
-    value = "," + value.replace("\n", ",")
+    # value = 'text/html; charset=utf-8'
+    value = "," + value.replace("\n", ",")  # ',text/html; charset=utf-8'
     while value:
         match = _option_header_start_mime_type.match(value)
         if not match:
             break
-        result.append(match.group(1))  # mimetype
+        result.append(match.group(1))  # mimetype, text/html(Content-type)
         options = {}
-        # Parse options
-        rest = match.group(2)
+        # 解析选项
+        rest = match.group(2)  # ; charset=utf-8
         continued_encoding = None
         while rest:
             optmatch = _option_header_piece_re.match(rest)
             if not optmatch:
                 break
-            option, count, encoding, language, option_value = optmatch.groups()
-            # Continuations don't have to supply the encoding after the
-            # first line. If we're in a continuation, track the current
-            # encoding to use for subsequent lines. Reset it when the
-            # continuation ends.
+            option, count, encoding, language, option_value = optmatch.groups()  # ('charset, None, None, None, 'utf-8')
+            # 首行后的连续行不需要提供编码。如果处于连续行，使用当前的编码当作后续行的编码。
+            # 当连续行结束的时候进行重置。
             if not count:
                 continued_encoding = None
             else:
@@ -422,9 +421,7 @@ def parse_options_header(value, multiple=False):
                 if encoding is not None:
                     option_value = _unquote(option_value).decode(encoding)
             if count:
-                # Continuations append to the existing value. For
-                # simplicity, this ignores the possibility of
-                # out-of-order indices, which shouldn't happen anyway.
+                # 连续添加到正存在的的值，为了简洁性，忽略了不该产生的乱许索引的可能性。
                 options[option] = options.get(option, "") + option_value
             else:
                 options[option] = option_value
@@ -438,20 +435,17 @@ def parse_options_header(value, multiple=False):
 
 
 def parse_accept_header(value, cls=None):
-    """Parses an HTTP Accept-* header.  This does not implement a complete
-    valid algorithm but one that supports at least value and quality
-    extraction.
+    """解析HTTP Accept-* 头部。未实现完整且有效的算法但是至少支持值（value)和权重(quality)
+    的解析。
 
-    Returns a new :class:`Accept` object (basically a list of ``(value, quality)``
-    tuples sorted by the quality with some additional accessor methods).
+    返回新的:class:`Accept`对象（基本上是通过含有额外存储器方法的权重排序后的一个
+    ``(value, quality)``列表。
 
-    The second parameter can be a subclass of :class:`Accept` that is created
-    with the parsed values and returned.
+    第二个参数可能是由解析后的值创建并返回的:class:`Accept` 的子类。
 
-    :param value: the accept header string to be parsed.
-    :param cls: the wrapper class for the return value (can be
-                         :class:`Accept` or a subclass thereof)
-    :return: an instance of `cls`.
+    :param value: 被解析的accept头部字符串
+    :param cls: 返回值的包装类（可能是:class:`Accept`或:class:`Accept`的子类）
+    :return: 返回`cls`的一个实例。
     """
     if cls is None:
         cls = Accept
@@ -471,21 +465,19 @@ def parse_accept_header(value, cls=None):
 
 
 def parse_cache_control_header(value, on_update=None, cls=None):
-    """Parse a cache control header.  The RFC differs between response and
-    request cache control, this method does not.  It's your responsibility
-    to not use the wrong control statements.
+    """解析缓存控制头部。RFC定义了不同的响应和请求的缓存控制，但是这个方法并不这么做。别使用
+    错误控制表达式是开发者的职责。
 
     .. versionadded:: 0.5
-       The `cls` was added.  If not specified an immutable
-       :class:`~werkzeug.datastructures.RequestCacheControl` is returned.
+       添加`cls`。如果未被指定，则返回一个不可变的
+       :class:`~werkzeug.datastructrues.RequestCacheControl对象。
 
-    :param value: a cache control header to be parsed.
-    :param on_update: an optional callable that is called every time a value
-                      on the :class:`~werkzeug.datastructures.CacheControl`
-                      object is changed.
-    :param cls: the class for the returned object.  By default
-                :class:`~werkzeug.datastructures.RequestCacheControl` is used.
-    :return: a `cls` object.
+    :param value: 要解析的缓存控制头。
+    :param on_update: 每当:class:`~werkzeug.datastructures.CacheControl的对象上的
+                      有一个值发生改变时，调用一个可选的可调用对象。
+    :param cls: 返回对象的类。默认使用
+                :class:`~werkzeug.datastructures.RequestCacheControl`。
+    :return: 一个`cls`的对象。
     """
     if cls is None:
         cls = RequestCacheControl
@@ -495,13 +487,11 @@ def parse_cache_control_header(value, on_update=None, cls=None):
 
 
 def parse_set_header(value, on_update=None):
-    """Parse a set-like header and return a
-    :class:`~werkzeug.datastructures.HeaderSet` object:
+    """解析类似集合的头部并且返回一个:class:`~werkzeug.datastructures.HeaderSet`对象：
 
     >>> hs = parse_set_header('token, "quoted value"')
 
-    The return value is an object that treats the items case-insensitively
-    and keeps the order of the items:
+    返回值是一个忽略大小写并且保持每项顺序的对象：
 
     >>> 'TOKEN' in hs
     True
@@ -510,14 +500,12 @@ def parse_set_header(value, on_update=None):
     >>> hs
     HeaderSet(['token', 'quoted value'])
 
-    To create a header from the :class:`HeaderSet` again, use the
-    :func:`dump_header` function.
+    为了从:class:`HeaderSet`再次创建一个头部，需使用:func:`dump_header`函数。
 
-    :param value: a set header to be parsed.
-    :param on_update: an optional callable that is called every time a
-                      value on the :class:`~werkzeug.datastructures.HeaderSet`
-                      object is changed.
-    :return: a :class:`~werkzeug.datastructures.HeaderSet`
+    :param value: 被解析的一系列头部。
+    :param on_update: 每当:class:`~werkzeug.datastructures.CacheControl的对象上的
+                      有一个值发生改变时，调用一个可选的可调用对象。
+    :return: 一个:class:`~werkzeug.datastructures.HeaderSet`的对象。
     """
     if not value:
         return HeaderSet(None, on_update)
