@@ -503,7 +503,7 @@ def parse_set_header(value, on_update=None):
     为了从:class:`HeaderSet`再次创建一个头部，需使用:func:`dump_header`函数。
 
     :param value: 被解析的一系列头部。
-    :param on_update: 每当:class:`~werkzeug.datastructures.CacheControl的对象上的
+    :param on_update: 每当:class:`~werkzeug.datastructures.HeaderSet`的对象上的
                       有一个值发生改变时，调用一个可选的可调用对象。
     :return: 一个:class:`~werkzeug.datastructures.HeaderSet`的对象。
     """
@@ -513,17 +513,15 @@ def parse_set_header(value, on_update=None):
 
 
 def parse_authorization_header(value):
-    """Parse an HTTP basic/digest authorization header transmitted by the web
-    browser.  The return value is either `None` if the header was invalid or
-    not given, otherwise an :class:`~werkzeug.datastructures.Authorization`
-    object.
+    """解析浏览器发送的HTTP basic/digest 授权头部。如果头部无效或是没有给定，则返回是None，
+    否则返回一个:class:`~werkzeug.datastructures.Authorization`对象。
 
-    :param value: the authorization header to parse.
-    :return: a :class:`~werkzeug.datastructures.Authorization` object or `None`.
+    :param value: 要解析的授权HTTP头部
+    :return: :class:`~werkzeug.datastructures.Authorization`对象或者None。
     """
     if not value:
         return
-    value = wsgi_to_bytes(value)
+    value = wsgi_to_bytes(value)  # 字节类型数据，或是使用latin1编码后的数据
     try:
         auth_type, auth_info = value.split(None, 1)
         auth_type = auth_type.lower()
@@ -531,7 +529,7 @@ def parse_authorization_header(value):
         return
     if auth_type == b"basic":
         try:
-            username, password = base64.b64decode(auth_info).split(b":", 1)
+            username, password = base64.b64decode(auth_info).split(b":", 1)  # base64解码
         except Exception:
             return
         return Authorization(
@@ -542,7 +540,7 @@ def parse_authorization_header(value):
             },
         )
     elif auth_type == b"digest":
-        auth_map = parse_dict_header(auth_info)
+        auth_map = parse_dict_header(auth_info)  # 返回数据字典
         for key in "username", "realm", "nonce", "uri", "response":
             if key not in auth_map:
                 return
@@ -553,14 +551,13 @@ def parse_authorization_header(value):
 
 
 def parse_www_authenticate_header(value, on_update=None):
-    """Parse an HTTP WWW-Authenticate header into a
-    :class:`~werkzeug.datastructures.WWWAuthenticate` object.
+    """解析HTTP WWW-Authenticate 头部成一个
+    :class:`~werkzeug.datastructures.WWWAuthenticate`对象。
 
-    :param value: a WWW-Authenticate header to parse.
-    :param on_update: an optional callable that is called every time a value
-                      on the :class:`~werkzeug.datastructures.WWWAuthenticate`
-                      object is changed.
-    :return: a :class:`~werkzeug.datastructures.WWWAuthenticate` object.
+    :param value: 要解析的WWW-Authenticate头部。
+    :param on_update: 每当:class:`~werkzeug.datastructures.WWWAuthenticate`的对象
+                      上的有一个值发生改变时，调用一个可选的可调用对象。
+    :return: 一个 :class:`~werkzeug.datastructures.WWWAuthenticate` 对象。
     """
     if not value:
         return WWWAuthenticate(on_update=on_update)
@@ -573,8 +570,8 @@ def parse_www_authenticate_header(value, on_update=None):
 
 
 def parse_if_range_header(value):
-    """Parses an if-range header which can be an etag or a date.  Returns
-    a :class:`~werkzeug.datastructures.IfRange` object.
+    """解析值可能是etag或者日期的if-range头部。返回一个
+    :class:`~werkzeug.datastructures.IfRange`对象。
 
     .. versionadded:: 0.7
     """
@@ -583,7 +580,7 @@ def parse_if_range_header(value):
     date = parse_date(value)
     if date is not None:
         return IfRange(date=date)
-    # drop weakness information
+    # 丢弃弱信息
     return IfRange(unquote_etag(value)[0])
 
 
@@ -756,7 +753,7 @@ def generate_etag(data):
 
 
 def parse_date(value):
-    """Parse one of the following date formats into a datetime object:
+    """解析下方日期格式之一成datetime对象：
 
     .. sourcecode:: text
 
@@ -764,20 +761,19 @@ def parse_date(value):
         Sunday, 06-Nov-94 08:49:37 GMT ; RFC 850, obsoleted by RFC 1036
         Sun Nov  6 08:49:37 1994       ; ANSI C's asctime() format
 
-    If parsing fails the return value is `None`.
+    如果解析失败，返回值为`None`。
 
-    :param value: a string with a supported date format.
-    :return: a :class:`datetime.datetime` object.
+    :param value: 支持日期格式的字符串。
+    :return: 一个:class:`datetime.datetime`对象。
     """
     if value:
         t = parsedate_tz(value.strip())
         if t is not None:
             try:
                 year = t[0]
-                # unfortunately that function does not tell us if two digit
-                # years were part of the string, or if they were prefixed
-                # with two zeroes.  So what we do is to assume that 69-99
-                # refer to 1900, and everything below to 2000
+                # 不巧的是，那个函数并没有告诉两位数的年份是字符串的一部分，或者是否使用了
+                # 两个00作为前缀放在前面。因此，要做的事情是假设69-99指的是1900，低于的这个
+                # 范围的指的是2000。
                 if year >= 0 and year <= 68:
                     year += 2000
                 elif year >= 69 and year <= 99:

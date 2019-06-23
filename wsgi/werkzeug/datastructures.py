@@ -2254,22 +2254,20 @@ class ETags(collections_abc.Container, collections_abc.Iterable):
 
 
 class IfRange(object):
-    """Very simple object that represents the `If-Range` header in parsed
-    form.  It will either have neither a etag or date or one of either but
-    never both.
+    """以解析后的形式表示`If-range`头部的简单的对象。Very simple object that represents the `If-Range` header in parsed
+    form.  它的值要么是etag和date两者之一，要么就都不是。
 
     .. versionadded:: 0.7
     """
 
     def __init__(self, etag=None, date=None):
-        #: The etag parsed and unquoted.  Ranges always operate on strong
-        #: etags so the weakness information is not necessary.
+        #: 解析和取消引号之后的etag。Ranges总是操作强etags，所以弱信息就没必要了。
         self.etag = etag
-        #: The date in parsed format or `None`.
+        #: 解析格式的date或者为`None`。The date in parsed format or `None`.
         self.date = date
 
     def to_header(self):
-        """Converts the object back into an HTTP header."""
+        """将对象转换回一个HTTP头部。"""
         if self.date is not None:
             return http_date(self.date)
         if self.etag is not None:
@@ -2434,16 +2432,14 @@ class ContentRange(object):
 
 
 class Authorization(ImmutableDictMixin, dict):
-    """Represents an `Authorization` header sent by the client.  You should
-    not create this kind of object yourself but use it when it's returned by
-    the `parse_authorization_header` function.
+    """表示客户端发送的`Authorization` HTTP头部。不应该自己创建这种对象，而是当
+    `parse_authorization_header`函数返回时，使用这个对象。
 
-    This object is a dict subclass and can be altered by setting dict items
-    but it should be considered immutable as it's returned by the client and
-    not meant for modifications.
+    这个对象是字典的子类，并且能够通过设置字典的项来改变，但是应该考虑当它由客户端返回和不可
+    修改的时候，使用不可变对象。
 
     .. versionchanged:: 0.5
-       This object became immutable.
+       这个对象变成不可变对象。
     """
 
     def __init__(self, auth_type, data=None):
@@ -2453,46 +2449,40 @@ class Authorization(ImmutableDictMixin, dict):
     username = property(
         lambda self: self.get("username"),
         doc="""
-        The username transmitted.  This is set for both basic and digest
-        auth all the time.""",
+        传输的用户名。一直为basic 和 digest auth而设置""",
     )
     password = property(
         lambda self: self.get("password"),
         doc="""
-        When the authentication type is basic this is the password
-        transmitted by the client, else `None`.""",
+        当认证类型是basic的时候，这是有客户端传输的密码，否则是`None`。""",
     )
     realm = property(
         lambda self: self.get("realm"),
         doc="""
-        This is the server realm sent back for HTTP digest auth.""",
+        发送回来的HTTP digest 认证服务器领域。""",
     )
     nonce = property(
         lambda self: self.get("nonce"),
         doc="""
-        The nonce the server sent for digest auth, sent back by the client.
-        A nonce should be unique for every 401 response for HTTP digest
-        auth.""",
+        服务器发送回给客户端用于digest认证的特定信息。每次HTTP摘要产生的401响应的时候，
+        一份特定信息都是唯一的。""",
     )
     uri = property(
         lambda self: self.get("uri"),
         doc="""
-        The URI from Request-URI of the Request-Line; duplicated because
-        proxies are allowed to change the Request-Line in transit.  HTTP
-        digest auth only.""",
+        浏览器请求行的请求URI。因为代理在传输的过程中允许修改请求行，所以是重复的。
+        只用于HTTP digest 认证。""",
     )
     nc = property(
         lambda self: self.get("nc"),
         doc="""
-        The nonce count value transmitted by clients if a qop-header is
-        also transmitted.  HTTP digest auth only.""",
+        如果qop-header也被传输，客户端中传输特定信息的计数值。只用于HTTP digest 认证。""",
     )
     cnonce = property(
         lambda self: self.get("cnonce"),
         doc="""
-        If the server sent a qop-header in the ``WWW-Authenticate``
-        header, the client has to provide this value for HTTP digest auth.
-        See the RFC for more details.""",
+        如果服务器在``WWW-Authenticate``头部中发送qop-header，客户端得提供用于HTTP
+        digest 认证的值。参阅RFC获取更多信息。""",
     )
     response = property(
         lambda self: self.get("response"),
@@ -2503,16 +2493,14 @@ class Authorization(ImmutableDictMixin, dict):
     opaque = property(
         lambda self: self.get("opaque"),
         doc="""
-        The opaque header from the server returned unchanged by the client.
-        It is recommended that this string be base64 or hexadecimal data.
-        Digest auth only.""",
+        客户端未改变并且返回的来自服务器的不透明头部。推荐这个字符串使用base64或者是十六进制
+        的数据。仅用于Digest 认证。""",
     )
     qop = property(
         lambda self: self.get("qop"),
         doc="""
-        Indicates what "quality of protection" the client has applied to
-        the message for HTTP digest auth. Note that this is a single token,
-        not a quoted list of alternatives as in WWW-Authenticate.""",
+        暗示客户端对HTTP digest 认证信息应用的“资格保护”。注意这个是单独token，而不是一个
+        作为在WWW-Authenticate中第二选择的加引号的列表。""",
     )
 
 
