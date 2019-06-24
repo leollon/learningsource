@@ -753,7 +753,7 @@ def generate_etag(data):
 
 
 def parse_date(value):
-    """解析下方日期格式之一成datetime对象：
+    """解析下方日期格式之一形成datetime对象：
 
     .. sourcecode:: text
 
@@ -767,13 +767,12 @@ def parse_date(value):
     :return: 一个:class:`datetime.datetime`对象。
     """
     if value:
-        t = parsedate_tz(value.strip())
+        t = parsedate_tz(value.strip())  # 返回元组(yyyy, mm, dd, HH, MM, SS, 0, 1, -1, tzoffset)
         if t is not None:
             try:
                 year = t[0]
                 # 不巧的是，那个函数并没有告诉两位数的年份是字符串的一部分，或者是否使用了
-                # 两个00作为前缀放在前面。因此，要做的事情是假设69-99指的是1900，低于的这个
-                # 范围的指的是2000。
+                # 两个00作为前缀。因此，得假设69-99指的是1900，低于的这个范围的指的是2000。
                 if year >= 0 and year <= 68:
                     year += 2000
                 elif year >= 69 and year <= 99:
@@ -784,13 +783,24 @@ def parse_date(value):
 
 
 def _dump_date(d, delim):
-    """Used for `http_date` and `cookie_date`."""
+    """用于`http_date` 和 `cookie_date`。
+    >>> d = None
+    >>> _dump_date(d, ' ')
+    ...
+    >>> from datetime import datetime
+    >>> d = datetime.now()
+    >>> _dump_date(d, ' ')
+    ...
+    >>> d = datetime.now().timestamp()
+    >>> _dump_date(d, ' ')
+    ...
+    """
     if d is None:
-        d = gmtime()
+        d = gmtime()  # 取当前时间并进行转换，gmtime() -> time.struct_time() 对象
     elif isinstance(d, datetime):
-        d = d.utctimetuple()
+        d = d.utctimetuple()  # d.utctimetuple() -> time.struct_time() 对象
     elif isinstance(d, (integer_types, float)):
-        d = gmtime(d)
+        d = gmtime(d)  # time.struct_time() 对象，d = datetime.datetime.now().timestamp()
     return "%s, %02d%s%s%s%s %02d:%02d:%02d GMT" % (
         ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[d.tm_wday],
         d.tm_mday,
@@ -818,41 +828,38 @@ def _dump_date(d, delim):
 
 
 def cookie_date(expires=None):
-    """Formats the time to ensure compatibility with Netscape's cookie
-    standard.
+    """格式化时间以确保兼容Netscape'cookie标准。
 
-    Accepts a floating point number expressed in seconds since the epoch in, a
-    datetime object or a timetuple.  All times in UTC.  The :func:`parse_date`
-    function can be used to parse such a date.
+    自从进入epoch以来，接收一个用浮点数表达的秒数，一个datetime对象或timetuple。所有的时间
+    都是属于UTC。能够调用:func:`parse_date`来解析这样子的日期。
 
-    Outputs a string in the format ``Wdy, DD-Mon-YYYY HH:MM:SS GMT``.
+    输出格式为``Wdy, DD-Mon-YYYY HH:MM:SS GMT``的字符串。
 
-    :param expires: If provided that date is used, otherwise the current.
+    :param expires: 如果提供了日期，那么则使用那个日期，否则，使用当前的日期。
     """
     return _dump_date(expires, "-")
 
 
 def http_date(timestamp=None):
-    """Formats the time to match the RFC1123 date format.
+    """格式化时间来匹配RFC1123的日期格式。
 
-    Accepts a floating point number expressed in seconds since the epoch in, a
-    datetime object or a timetuple.  All times in UTC.  The :func:`parse_date`
-    function can be used to parse such a date.
+    自从进入epoch以来，接收一个用浮点数表达的秒数，一个datetime对象或timetuple。所有的时间
+    都是属于UTC。能够调用:func:`parse_date`来解析这样子的日期。
 
-    Outputs a string in the format ``Wdy, DD Mon YYYY HH:MM:SS GMT``.
+    输出格式为``Wdy, DD-Mon-YYYY HH:MM:SS GMT``的字符串。
 
-    :param timestamp: If provided that date is used, otherwise the current.
+    :param timestamp: 如果提供了日期，那么则使用那个日期，否则，使用当前的日期。
     """
     return _dump_date(timestamp, " ")
 
 
 def parse_age(value=None):
-    """Parses a base-10 integer count of seconds into a timedelta.
+    """将十进制的秒数解析成timedelta。
 
-    If parsing fails, the return value is `None`.
+    如果解析失败，返回值为`None`。
 
-    :param value: a string consisting of an integer represented in base-10
-    :return: a :class:`datetime.timedelta` object or `None`.
+    :param value: 有以十为基数表示的整数构成的字符串。
+    :return: 一个:class:`datetime.timedelta`对象或者为 `None`.
     """
     if not value:
         return None
@@ -869,18 +876,17 @@ def parse_age(value=None):
 
 
 def dump_age(age=None):
-    """Formats the duration as a base-10 integer.
+    """格式化duration成以十为基数。
 
-    :param age: should be an integer number of seconds,
-                a :class:`datetime.timedelta` object, or,
-                if the age is unknown, `None` (default).
+    :param age: 应该是整数的秒数，一个`datetime.timedelta`对象，或，如果age是未知的，
+                `None`（默认值）。
     """
     if age is None:
         return
     if isinstance(age, timedelta):
-        # do the equivalent of Python 2.7's timedelta.total_seconds(),
-        # but disregarding fractional seconds
-        age = age.seconds + (age.days * 24 * 3600)
+        # 做和Python 2.7' timedelta.total_seconds()同样的事情，
+        # 但是不用管小数位数的秒
+        age = age.seconds + (age.days * 24 * 3600)  # 转换成秒数
 
     age = int(age)
     if age < 0:
@@ -892,16 +898,14 @@ def dump_age(age=None):
 def is_resource_modified(
     environ, etag=None, data=None, last_modified=None, ignore_if_range=True
 ):
-    """Convenience method for conditional requests.
+    """条件请求的便捷方法。
 
-    :param environ: the WSGI environment of the request to be checked.
-    :param etag: the etag for the response for comparison.
-    :param data: or alternatively the data of the response to automatically
-                 generate an etag using :func:`generate_etag`.
-    :param last_modified: an optional date of the last modification.
-    :param ignore_if_range: If `False`, `If-Range` header will be taken into
-                            account.
-    :return: `True` if the resource was modified, otherwise `False`.
+    :param environ: 被检查的请求的WSGI环境。
+    :param etag: 用于比较的响应etag。
+    :param data: 或是使用:func:`generate_etag`自动生成的相应数据作为另外一种选择。
+    :param last_modified: 最后一次修改的的可选日期。
+    :param ignore_if_range: 如果为`False`，将判断`If-Range`头部。
+    :return: 如果资源被修改了，则为`True`, 否则为`False`。
     """
     if etag is None and data is not None:
         etag = generate_etag(data)
@@ -912,18 +916,17 @@ def is_resource_modified(
 
     unmodified = False
     if isinstance(last_modified, string_types):
-        last_modified = parse_date(last_modified)
+        last_modified = parse_date(last_modified)  # datetime object
 
-    # ensure that microsecond is zero because the HTTP spec does not transmit
-    # that either and we might have some false positives.  See issue #39
+    # 确保微秒是零，因为HTTP规范也不传输并且可能还有一些错误的整数。查阅 issue #39
     if last_modified is not None:
         last_modified = last_modified.replace(microsecond=0)
 
     if_range = None
     if not ignore_if_range and "HTTP_RANGE" in environ:
         # https://tools.ietf.org/html/rfc7233#section-3.2
-        # A server MUST ignore an If-Range header field received in a request
-        # that does not contain a Range header field.
+        # 请求中不包含Range头部字段，但是服务器收到的请求中包含有If-Range头部字段，服务器
+        # 必须忽略它。
         if_range = parse_if_range_header(environ.get("HTTP_IF_RANGE"))
 
     if if_range is not None and if_range.date is not None:
@@ -942,13 +945,11 @@ def is_resource_modified(
             if_none_match = parse_etags(environ.get("HTTP_IF_NONE_MATCH"))
             if if_none_match:
                 # https://tools.ietf.org/html/rfc7232#section-3.2
-                # "A recipient MUST use the weak comparison function when comparing
-                # entity-tags for If-None-Match"
+                # “接收端必须使用弱比较函数，当为了If-None-Match而比较entity-tags的时候”
                 unmodified = if_none_match.contains_weak(etag)
 
             # https://tools.ietf.org/html/rfc7232#section-3.1
-            # "Origin server MUST use the strong comparison function when
-            # comparing entity-tags for If-Match"
+            # “源服务器必须使用强比较函数，当为了If-Match而比较entity-tags的时候”
             if_match = parse_etags(environ.get("HTTP_IF_MATCH"))
             if if_match:
                 unmodified = not if_match.is_strong(etag)
