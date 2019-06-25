@@ -585,19 +585,19 @@ def parse_if_range_header(value):
 
 
 def parse_range_header(value, make_inclusive=True):
-    """Parses a range header into a :class:`~werkzeug.datastructures.Range`
-    object.  If the header is missing or malformed `None` is returned.
-    `ranges` is a list of ``(start, stop)`` tuples where the ranges are
-    non-inclusive.
+    """解析range头部成一个:class:`~werkug.datastructures.Range`对象。如果缺少这个头部
+    或是构成有问题，则返回`None`。`ranges`是一个``(start, stop)``元组的列表，元组中的范
+    围都是不互相包含的。
 
     .. versionadded:: 0.7
     """
     if not value or "=" not in value:
         return None
 
+    # value= "bytes=5001-10000"
     ranges = []
     last_end = 0
-    units, rng = value.split("=", 1)
+    units, rng = value.split("=", 1) # 'bytes', '5001-10000，10001-15000, -'
     units = units.strip().lower()
 
     for item in rng.split(","):
@@ -605,22 +605,26 @@ def parse_range_header(value, make_inclusive=True):
         if "-" not in item:
             return None
         if item.startswith("-"):
+            # '-15001, --15001, -abc, etc
             if last_end < 0:
+                # 有待商榷的地方，假设last_end的值为None，此时会产生异常了呀
                 return None
             try:
                 begin = int(item)
             except ValueError:
                 return None
             end = None
-            last_end = -1
+            last_end = -1  # -15001
         elif "-" in item:
-            begin, end = item.split("-", 1)
+            # 5001-10000, 10001-1500, 15001-,etc
+            begin, end = item.split("-", 1)  # 5001, 10000
             begin = begin.strip()
             end = end.strip()
             if not begin.isdigit():
                 return None
             begin = int(begin)
             if begin < last_end or last_end < 0:
+                # 范围重叠或没有结尾
                 return None
             if end:
                 if not end.isdigit():
@@ -629,6 +633,8 @@ def parse_range_header(value, make_inclusive=True):
                 if begin >= end:
                     return None
             else:
+                # value='bytes=15001-', then end=''
+                # value=bytes='5001-10000, 10001-15000, 150001-, 20000-'
                 end = None
             last_end = end
         ranges.append((begin, end))
