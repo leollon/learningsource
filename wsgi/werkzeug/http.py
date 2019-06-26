@@ -584,7 +584,7 @@ def parse_if_range_header(value):
     return IfRange(unquote_etag(value)[0])
 
 
-def parse_range_header(value, make_inclusive=True):
+def parse_range_header(value):
     """解析range头部成一个:class:`~werkug.datastructures.Range`对象。如果缺少这个头部
     或是构成有问题，则返回`None`。`ranges`是一个``(start, stop)``元组的列表，元组中的范
     围都是不互相包含的。
@@ -643,37 +643,53 @@ def parse_range_header(value, make_inclusive=True):
 
 
 def parse_content_range_header(value, on_update=None):
-    """Parses a range header into a
-    :class:`~werkzeug.datastructures.ContentRange` object or `None` if
-    parsing is not possible.
+    """解析一个range 头部形成一个:class:`~werkzeug.datastructures.ContentRange`对象
+    或如果解析过程不可能发生，则是`None`。
 
     .. versionadded:: 0.7
 
-    :param value: a content range header to be parsed.
-    :param on_update: an optional callable that is called every time a value
-                      on the :class:`~werkzeug.datastructures.ContentRange`
-                      object is changed.
+    :param value: 被解析的内容范围头部。
+    :param on_update: 每当:class:`~werkzeug.datastructures.ContentRange`的对象
+                      上的有一个值发生改变时，调用一个可选的可调用对象。
     """
+    # testcase
+    # 1.value='bytes 0-98/*'
+    # 2.value='bytes 0-98/*asdfsa'
+    # 3.value='bytes 0-99/100'
+    # 4.value='bytes */100'
+    # 5.value='bytes 0-9o/90'
+    # 6.value=None
+    # 7.value='bytes /'
+    # 8.value=''
+    # 9.value='bytes 90'
+    # 10.value='bytes 90/0'
     if value is None:
+        # 6.value=None
         return None
     try:
+        # 8.value=''
         units, rangedef = (value or "").strip().split(None, 1)
     except ValueError:
         return None
 
     if "/" not in rangedef:
+        # 9.value='bytes 90'
         return None
     rng, length = rangedef.split("/", 1)
     if length == "*":
+        # 1.value='bytes 0-98/*'
         length = None
     elif length.isdigit():
         length = int(length)
     else:
+        # 2.value='bytes 0-98/*asdfsa'
         return None
 
     if rng == "*":
+        # 4.value='bytes */100'
         return ContentRange(units, None, None, length, on_update=on_update)
     elif "-" not in rng:
+        # 10.value='bytes 90/0'
         return None
 
     start, stop = rng.split("-", 1)
@@ -681,17 +697,20 @@ def parse_content_range_header(value, on_update=None):
         start = int(start)
         stop = int(stop) + 1
     except ValueError:
+        # 2.value='bytes 0-98/*asdfsa'
+        # 5.value='bytes 0-9o/90'
         return None
 
     if is_byte_range_valid(start, stop, length):
+        # 1.value='bytes 0-98/*'
         return ContentRange(units, start, stop, length, on_update=on_update)
 
 
 def quote_etag(etag, weak=False):
-    """Quote an etag.
+    """引用一个etag。
 
-    :param etag: the etag to quote.
-    :param weak: set to `True` to tag it "weak".
+    :param etag: 引用的etag。
+    :param weak: 设置为`True`来表示弱标签。
     """
     if '"' in etag:
         raise ValueError("invalid etag")
@@ -702,15 +721,15 @@ def quote_etag(etag, weak=False):
 
 
 def unquote_etag(etag):
-    """Unquote a single etag:
+    """取消引用一个单独的etag。
 
     >>> unquote_etag('W/"bar"')
     ('bar', True)
     >>> unquote_etag('"bar"')
     ('bar', False)
 
-    :param etag: the etag identifier to unquote.
-    :return: a ``(etag, weak)`` tuple.
+    :param etag: 取消引用的标签标识。
+    :return: 一个``(etag, weak))``元组。
     """
     if not etag:
         return None, None
@@ -725,10 +744,10 @@ def unquote_etag(etag):
 
 
 def parse_etags(value):
-    """Parse an etag header.
+    """解析一个标签头部。
 
-    :param value: the tag header to parse
-    :return: an :class:`~werkzeug.datastructures.ETags` object.
+    :param value: 解析的标签头部。
+    :return: 一个:class:`~werkzeug.datastructures.ETags` 对象。
     """
     if not value:
         return ETags()
@@ -737,6 +756,7 @@ def parse_etags(value):
     end = len(value)
     pos = 0
     while pos < end:
+        # _etag_re = re.compile(r'([Ww]/)?(?:"(.*?)"|(.*?))(?:\s*,\s*|$)')
         match = _etag_re.match(value, pos)
         if match is None:
             break
@@ -754,7 +774,7 @@ def parse_etags(value):
 
 
 def generate_etag(data):
-    """Generate an etag for some data."""
+    """为某些数据生成一个标签。"""
     return md5(data).hexdigest()
 
 
@@ -891,7 +911,7 @@ def dump_age(age=None):
         return
     if isinstance(age, timedelta):
         # 做和Python 2.7' timedelta.total_seconds()同样的事情，
-        # 但是不用管小数位数的秒
+        # 但是不用管小数位数后面的秒数
         age = age.seconds + (age.days * 24 * 3600)  # 转换成秒数
 
     age = int(age)
@@ -964,17 +984,15 @@ def is_resource_modified(
 
 
 def remove_entity_headers(headers, allowed=("expires", "content-location")):
-    """Remove all entity headers from a list or :class:`Headers` object.  This
-    operation works in-place.  `Expires` and `Content-Location` headers are
-    by default not removed.  The reason for this is :rfc:`2616` section
-    10.3.5 which specifies some entity headers that should be sent.
+    """从一个列表或:class:`Headers`对象中移除所有的实体首部。这些操作是原地进行。
+    `Expires`和`Content-Location`头部是默认被移除的。这么做的原因的是:rfc:`2616` 的
+    10.3.5部分指定了应该发送的一些实体首部。
 
     .. versionchanged:: 0.5
-       added `allowed` parameter.
+       添加`allowed`参数。
 
-    :param headers: a list or :class:`Headers` object.
-    :param allowed: a list of headers that should still be allowed even though
-                    they are entity headers.
+    :param headers: 一个列表或:class:`Headers`对象。
+    :param allowed: 仍然应该允许的头部的一个列表，即使它们是实体首部。
     """
     allowed = set(x.lower() for x in allowed)
     headers[:] = [
@@ -985,12 +1003,12 @@ def remove_entity_headers(headers, allowed=("expires", "content-location")):
 
 
 def remove_hop_by_hop_headers(headers):
-    """Remove all HTTP/1.1 "Hop-by-Hop" headers from a list or
-    :class:`Headers` object.  This operation works in-place.
+    """从一个列表或:class:`Headers`对象中移除所有的HTTP/1.1 "Hop-by-Hop"首部。
+    这些操作是原地进行。
 
     .. versionadded:: 0.5
 
-    :param headers: a list or :class:`Headers` object.
+    :param headers: 一个列表或:class:`Headers`对象。
     """
     headers[:] = [
         (key, value) for key, value in headers if not is_hop_by_hop_header(key)
@@ -998,55 +1016,51 @@ def remove_hop_by_hop_headers(headers):
 
 
 def is_entity_header(header):
-    """Check if a header is an entity header.
+    """检查一个头部是否是实体首部。
 
     .. versionadded:: 0.5
 
-    :param header: the header to test.
-    :return: `True` if it's an entity header, `False` otherwise.
+    :param header: 要测试的头部。
+    :return: 如果是一个实体首部，则为`True`, 否则是`False`。
     """
     return header.lower() in _entity_headers
 
 
 def is_hop_by_hop_header(header):
-    """Check if a header is an HTTP/1.1 "Hop-by-Hop" header.
+    """检查一个头部是否是一个HTTP/1.1 "Hop-by-Hop"头部。
 
     .. versionadded:: 0.5
 
-    :param header: the header to test.
-    :return: `True` if it's an HTTP/1.1 "Hop-by-Hop" header, `False` otherwise.
+    :param header: 要测试的头部。
+    :return: 如果是一个HTTP/1.1 "Hop-by-Hop"头部，则为True，否则是`False`。
     """
     return header.lower() in _hop_by_hop_headers
 
 
 def parse_cookie(header, charset="utf-8", errors="replace", cls=None):
-    """Parse a cookie.  Either from a string or WSGI environ.
+    """解析cookie。cookie来自一个字符串或WSGI 环境。
 
-    Per default encoding errors are ignored.  If you want a different behavior
-    you can set `errors` to ``'replace'`` or ``'strict'``.  In strict mode a
-    :exc:`HTTPUnicodeError` is raised.
+    默认的编码错误是被忽略的。如果想要不同的行为，可以设置`error`为``'replace'``
+    或``'strict'``。在strict模式中，将会引发:exc:`HTTPUnicodeError`异常。
 
     .. versionchanged:: 0.5
-       This function now returns a :class:`TypeConversionDict` instead of a
-       regular dict.  The `cls` parameter was added.
+       现在这个函数返回一个:class:`TypeConversionDict`对象，而不是一个普通的字典。添加
+       `cls`参数。
 
-    :param header: the header to be used to parse the cookie.  Alternatively
-                   this can be a WSGI environment.
-    :param charset: the charset for the cookie values.
-    :param errors: the error behavior for the charset decoding.
-    :param cls: an optional dict class to use.  If this is not specified
-                       or `None` the default :class:`TypeConversionDict` is
-                       used.
+    :param header: 用来解析cookie的头部。WSGI环境能够作为备选。
+    :param charset: cookie值的字符集。
+    :param errors: 使用字符集解码时的错误行为。
+    :param cls: 可供选择使用的字典类。如果没有制定或者是`None`，则使用默认的
+                :class:`TypeConversionDict`.
     """
     if isinstance(header, dict):
         header = header.get("HTTP_COOKIE", "")
     elif header is None:
         header = ""
 
-    # If the value is an unicode string it's mangled through latin1.  This
-    # is done because on PEP 3333 on Python 3 all headers are assumed latin1
-    # which however is incorrect for cookies, which are sent in page encoding.
-    # As a result we
+    # 如果这个值是unicode字符串，则使用latin1进行编码。因为在Python 3 的 PEP 3333中，
+    # 所有头部都假设使用的是latin字符集，然而对于cookie来说，这是不正确的，cookie在页面
+    # 编码中被发送。
     if isinstance(header, text_type):
         header = header.encode("latin1", "replace")
 
@@ -1201,11 +1215,12 @@ def dump_cookie(
 
 
 def is_byte_range_valid(start, stop, length):
-    """Checks if a given byte content range is valid for the given length.
+    """根据长度检查给定的字节内容范围是否有效。
 
     .. versionadded:: 0.7
     """
     if (start is None) != (stop is None):
+        # either start is None or stop is None
         return False
     elif start is None:
         return length is None or length >= 0

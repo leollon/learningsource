@@ -2171,8 +2171,7 @@ class HeaderSet(collections_abc.MutableSet):
 
 
 class ETags(collections_abc.Container, collections_abc.Iterable):
-    """A set that can be used to check if one etag is present in a collection
-    of etags.
+    """一个用于检测是否一个标签出现在一个标签集合中的集合。
     """
 
     def __init__(self, strong_etags=None, weak_etags=None, star_tag=False):
@@ -2181,44 +2180,42 @@ class ETags(collections_abc.Container, collections_abc.Iterable):
         self.star_tag = star_tag
 
     def as_set(self, include_weak=False):
-        """Convert the `ETags` object into a python set.  Per default all the
-        weak etags are not part of this set."""
+        """将`Etags`对象转换成一个Python集合。每个默认的所有弱标签不是这个集合的一部分。"""
         rv = set(self._strong)
         if include_weak:
             rv.update(self._weak)
         return rv
 
     def is_weak(self, etag):
-        """Check if an etag is weak."""
+        """检测一个标签是否是弱标签。"""
         return etag in self._weak
 
     def is_strong(self, etag):
-        """Check if an etag is strong."""
+        """检测一个标签是否是强标签。"""
         return etag in self._strong
 
     def contains_weak(self, etag):
-        """Check if an etag is part of the set including weak and strong tags."""
+        """检测一个标签是否是一个包含弱标签和强标签的集合的一部分。"""
         return self.is_weak(etag) or self.contains(etag)
 
     def contains(self, etag):
-        """Check if an etag is part of the set ignoring weak tags.
-        It is also possible to use the ``in`` operator.
+        """检测一个标签是否是一个忽略了弱标签的集合的一部分。也可以使用``in``操作符。
         """
         if self.star_tag:
             return True
         return self.is_strong(etag)
 
     def contains_raw(self, etag):
-        """When passed a quoted tag it will check if this tag is part of the
-        set.  If the tag is weak it is checked against weak and strong tags,
-        otherwise strong only."""
+        """传递一个带引号的标签的时候，将会检查这个标签是否是标签集合的一部分。如果这个标签是
+        弱标签，则会检查弱标签和强标签，否则为只能是强标签。
+        """
         etag, weak = unquote_etag(etag)
         if weak:
             return self.contains_weak(etag)
         return self.contains(etag)
 
     def to_header(self):
-        """Convert the etags set into a HTTP header string."""
+        """将标签集合转换成HTTP头部中的字符串。"""
         if self.star_tag:
             return "*"
         return ", ".join(
@@ -2360,7 +2357,7 @@ class Range(object):
 
 
 class ContentRange(object):
-    """Represents the content range header.
+    """表示内容范围头部。
 
     .. versionadded:: 0.7
     """
@@ -2381,19 +2378,18 @@ class ContentRange(object):
 
         return property(fget, fset)
 
-    #: The units to use, usually "bytes"
+    #：使用单位，通常是"bytes"
     units = _callback_property("_units")
-    #: The start point of the range or `None`.
+    #：内容范围的起点或者为`None`。
     start = _callback_property("_start")
-    #: The stop point of the range (non-inclusive) or `None`.  Can only be
-    #: `None` if also start is `None`.
+    #：内容范围的终点（不包含）或者为`None`。如果起点也为`None`，终点只能为`None`。
     stop = _callback_property("_stop")
-    #: The length of the range or `None`.
+    #： 内容范围的长度或者为`None`。
     length = _callback_property("_length")
     del _callback_property
 
     def set(self, start, stop, length=None, units="bytes"):
-        """Simple method to update the ranges."""
+        """用于更新内容范围的简单方法"""
         assert is_byte_range_valid(start, stop, length), "Bad range provided"
         self._units = units
         self._start = start
@@ -2403,8 +2399,7 @@ class ContentRange(object):
             self.on_update(self)
 
     def unset(self):
-        """Sets the units to `None` which indicates that the header should
-        no longer be used.
+        """设置单位为`None`，表明这个头部不应该再被使用。
         """
         self.set(None, None, units=None)
 
