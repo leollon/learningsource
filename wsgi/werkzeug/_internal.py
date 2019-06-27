@@ -280,8 +280,10 @@ def _cookie_unquote(b):
     if len(b) < 2:
         return b
     if b[:1] != b'"' or b[-1:] != b'"':
+        # 例如，b=b'abc', b='"abc' and b='abc"'.
         return b
 
+    # b=b'"abc"'
     b = b[1:-1]
 
     i = 0
@@ -290,7 +292,9 @@ def _cookie_unquote(b):
     _push = rv.extend
 
     while 0 <= i < n:
-        o_match = _octal_re.search(b, i)
+        # _octal_re = re.compile(br"\\[0-3][0-7][0-7]") 组合的方式，斜杠开头，然后是0-3之间的一个数字，接着是0-7，最后也0-7
+        o_match = _octal_re.search(b, i)  # 例如，\123\341\346\123\337\237\236
+        # _quote_re = re.compile(br"[\\].")  # \2e\3ef\3ab\12d\3ef\2cd\2b6\bb，匹配斜杠以及后面的单个字符。
         q_match = _quote_re.search(b, i)
         if not o_match and not q_match:
             rv.extend(b[i:])
@@ -313,11 +317,24 @@ def _cookie_unquote(b):
 
 
 def _cookie_parse_impl(b):
-    """Lowlevel cookie parsing facility that operates on bytes."""
+    """处理字节数据的底层cookie解析函数。"""
     i = 0
     n = len(b)
 
     while i < n:
+        #_cookie_re = re.compile(
+        # br"""
+        #     (?P<key>[^=;]+)
+        #     (?:\s*=\s*
+        #         (?P<val>
+        #             "(?:[^\\"]|\\.)*" |
+        #             (?:.*?)
+        #         )
+        #     )?
+        #     \s*;
+        # """,
+        # flags=re.VERBOSE,
+        # )
         match = _cookie_re.search(b + b";", i)
         if not match:
             break

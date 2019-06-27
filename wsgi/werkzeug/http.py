@@ -1068,6 +1068,7 @@ def parse_cookie(header, charset="utf-8", errors="replace", cls=None):
         cls = TypeConversionDict
 
     def _parse_pairs():
+        """生成器函数，生成cookie的键值元组。"""
         for key, val in _cookie_parse_impl(header):
             key = to_unicode(key, charset, errors, allow_none_charset=True)
             if not key:
