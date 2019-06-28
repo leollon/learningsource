@@ -341,7 +341,7 @@ def _cookie_parse_impl(b):
 
         key = match.group("key").strip()
         value = match.group("val") or b""
-        i = match.end(0)
+        i = match.end(0)  # 匹配的结尾处
 
         yield _cookie_unquote(key), _cookie_unquote(value)
 
