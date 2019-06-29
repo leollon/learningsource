@@ -349,6 +349,8 @@ def _cookie_parse_impl(b):
 def _encode_idna(domain):
     # 如果参数给定的字节类型的值，确保它们能够转换成ASCII
     if not isinstance(domain, text_type):
+        # text_type = str or unicode
+        # unicode to ascii
         domain.decode("ascii")
         return domain
 

@@ -826,7 +826,8 @@ def _dump_date(d, delim):
     elif isinstance(d, datetime):
         d = d.utctimetuple()  # d.utctimetuple() -> time.struct_time() 对象
     elif isinstance(d, (integer_types, float)):
-        d = gmtime(d)  # time.struct_time() 对象，d = datetime.datetime.now().timestamp()
+        d = gmtime(d)  # time.struct_time() 对象，原来的d = datetime.datetime.now().timestamp()
+    # return strftime("%a, %02d{0}%b{1}%Y %02H:%02M:%02S GMT".format(delim, delim), d)
     return "%s, %02d%s%s%s%s %02d:%02d:%02d GMT" % (
         ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[d.tm_wday],
         d.tm_mday,
@@ -1093,59 +1094,48 @@ def dump_cookie(
     max_size=4093,
     samesite=None,
 ):
-    """Creates a new Set-Cookie header without the ``Set-Cookie`` prefix
-    The parameters are the same as in the cookie Morsel object in the
-    Python standard library but it accepts unicode data, too.
+    """创建一个新的没有``Set-Cookie``前缀的Set-Cookie头部。参数和Python标准库中的
+    cookie小部分对象一样，但是也接受unicode数据。
 
-    On Python 3 the return value of this function will be a unicode
-    string, on Python 2 it will be a native string.  In both cases the
-    return value is usually restricted to ascii as the vast majority of
-    values are properly escaped, but that is no guarantee.  If a unicode
-    string is returned it's tunneled through latin1 as required by
-    PEP 3333.
+    在Python 3上，这个函数的的返回值是unicode 字符串，而在Python 2中是原生字符串。这个两种
+    情况下，返回值总是被限制为ascii，因为大多数的值都被适当的转义，但是也是没有保证。如果返回
+    unicode字符串，将会被变成PEP3 3333 需要的latin1字符串。
 
-    The return value is not ASCII safe if the key contains unicode
-    characters.  This is technically against the specification but
-    happens in the wild.  It's strongly recommended to not use
-    non-ASCII values for the keys.
+    这个返回值不是ASCII安全的，如果`key`包含unicode字符。技术上来说这是违背规范的，但总是
+    时有发生。强烈推荐keys不要使用非ASCII的值。
 
-    :param max_age: should be a number of seconds, or `None` (default) if
-                    the cookie should last only as long as the client's
-                    browser session.  Additionally `timedelta` objects
-                    are accepted, too.
-    :param expires: should be a `datetime` object or unix timestamp.
-    :param path: limits the cookie to a given path, per default it will
-                 span the whole domain.
-    :param domain: Use this if you want to set a cross-domain cookie. For
-                   example, ``domain=".example.com"`` will set a cookie
-                   that is readable by the domain ``www.example.com``,
-                   ``foo.example.com`` etc. Otherwise, a cookie will only
-                   be readable by the domain that set it.
-    :param secure: The cookie will only be available via HTTPS
-    :param httponly: disallow JavaScript to access the cookie.  This is an
-                     extension to the cookie standard and probably not
-                     supported by all browsers.
-    :param charset: the encoding for unicode values.
-    :param sync_expires: automatically set expires if max_age is defined
-                         but expires not.
-    :param max_size: Warn if the final header value exceeds this size. The
-        default, 4093, should be safely `supported by most browsers
-        <cookie_>`_. Set to 0 to disable this check.
-    :param samesite: Limits the scope of the cookie such that it will only
-                     be attached to requests if those requests are "same-site".
+    :param max_age: 应该是秒数或者`None`（默认），如果cookie应该只持续和客户端的浏览器
+                    会话一样长。另外，也接受`timedelta`对象。
+    :param expires: 应该是一个`datetime`对象或是unix 时间戳。
+    :param path: 限制cookie的指定路径。默认情况下，将会跨越整个域名。
+    :param domain: 如果想要设置跨域名的cookie，使用这个参数。比如，
+                   ``domain=".example.com"``将会设置cookie能够被域名
+                   ``www.example.com``，``foo.example.com``等等可读取。
+                   否则，cookie只会被设置它的域名可读取。
+    :param secure: cookie只能通过HTTPS可用。
+    :param httponly: 禁止JavaScript访问cookie。这是cookie标准的扩展并且可能不被所有
+                     的浏览器所支持。
+    :param charset: unicode值的编码。
+    :param sync_expires: 如果定义了max_age但是过期，则自动设置到期。
+    :param max_size: 如果最后头部的值超过了这个值，则发出警告。默认值的4093应该被大多数
+                     浏览器<cookie_>安全地支持。设置为0则关闭这个检查。
+    :param samesite: 限制cookie的作用域，目的是如果那些请求都是同一个站点，它将会被附加到
+                     那些请求中。
 
     .. _`cookie`: http://browsercookielimits.squawky.net/
     """
-    key = to_bytes(key, charset)
+    key = to_bytes(key, charset)  # 变成字节类型数据或为None
     value = to_bytes(value, charset)
 
     if path is not None:
         path = iri_to_uri(path, charset)
     domain = _make_cookie_domain(domain)
     if isinstance(max_age, timedelta):
+        # max_age = datetime.timedelta(days, seconds, microseconds)
         max_age = (max_age.days * 60 * 60 * 24) + max_age.seconds
     if expires is not None:
         if not isinstance(expires, string_types):
+            # 
             expires = cookie_date(expires)
     elif max_age is not None and sync_expires:
         expires = to_bytes(cookie_date(time() + max_age))
