@@ -1146,9 +1146,8 @@ def dump_cookie(
 
     buf = [key + b"=" + _cookie_quote(value)]
 
-    # XXX: In theory all of these parameters that are not marked with `None`
-    # should be quoted.  Because stdlib did not quote it before I did not
-    # want to introduce quoting there now.
+    # XXX：理论上，所有的这些参数被标记为`None`应该被加引号。因为现在在不想引入引号之前。
+    # 标准库不会给它加上引号。
     for k, v, q in (
         (b"Domain", domain, True),
         (b"Expires", expires, False),
@@ -1159,8 +1158,10 @@ def dump_cookie(
         (b"SameSite", samesite, False),
     ):
         if q is None:
+            # k = b"Secure", b"HttpOnly"
             if v:
-                buf.append(k)
+                # secure, httponly
+                buf.append(k)  # buf = [b"",...]
             continue
 
         if v is None:
@@ -1174,16 +1175,14 @@ def dump_cookie(
         tmp += b"=" + v
         buf.append(bytes(tmp))
 
-    # The return value will be an incorrectly encoded latin1 header on
-    # Python 3 for consistency with the headers object and a bytestring
-    # on Python 2 because that's how the API makes more sense.
+    # 在Python 3上为了保持和头部对象的一致性，返回值会是不正确地编码后的latin1头部，
+    # 在Python 2上，是字节字符串，因为这就是API更有意义的方式。
     rv = b"; ".join(buf)
     if not PY2:
         rv = rv.decode("latin1")
 
-    # Warn if the final value of the cookie is less than the limit. If the
-    # cookie is too large, then it may be silently ignored, which can be quite
-    # hard to debug.
+    # 如果最终cookie的值大于限制的值，则发出警告。如果cookie太大，那么可能会默默地忽略，这
+    # 可能会难以进行调试。
     cookie_size = len(rv)
 
     if max_size and cookie_size > max_size:
