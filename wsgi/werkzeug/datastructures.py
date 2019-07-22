@@ -3,7 +3,7 @@
     werkzeug.datastructures
     ~~~~~~~~~~~~~~~~~~~~~~~
 
-    This module provides mixins and classes with an immutable interface.
+    这个模块提供带有不可变接口的混入和接口。
 
     :copyright: 2007 Pallets
     :license: BSD-3-Clause
@@ -37,27 +37,32 @@ def is_immutable(self):
 
 
 def iter_multi_items(mapping):
-    """Iterates over the items of a mapping yielding keys and values
-    without dropping any from more complex structures.
+    """迭代映射的项来生成键和对应的值，而不落下任何来自更复杂结构的项。
     """
     if isinstance(mapping, MultiDict):
+        # MultiDict([('a', 'b'), ('a', 'c'), ('a', 'd'), ('h', 'i')])
         for item in iteritems(mapping, multi=True):
             yield item
     elif isinstance(mapping, dict):
         for key, value in iteritems(mapping):
             if isinstance(value, (tuple, list)):
+                # {'a': 'b', 'c': 'd', 'h': [1, 2, 3]}
                 for value in value:
                     yield key, value
             else:
+                # {'a': 'b', 'c': 'd', 'h': 'i'}
                 yield key, value
     else:
+        # [1, 2, 3, 4]
+        # 'adbc'
+        # {1, 3, 4}
         for item in mapping:
             yield item
 
 
 def native_itermethods(names):
     if not PY2:
-        return lambda x: x
+        return lambda x: x  # 匿名函数
 
     def setviewmethod(cls, name):
         viewmethod_name = "view%s" % name
@@ -71,7 +76,7 @@ def native_itermethods(names):
             viewmethod_name,
             name,
         )
-        setattr(cls, viewmethod_name, viewmethod)
+        setattr(cls, viewmethod_name, viewmethod)  # 描述器
 
     def setitermethod(cls, name):
         itermethod = getattr(cls, name)
@@ -82,7 +87,7 @@ def native_itermethods(names):
 
         listmethod.__name__ = name
         listmethod.__doc__ = "Like :py:meth:`iter%s`, but returns a list." % name
-        setattr(cls, name, listmethod)
+        setattr(cls, name, listmethod)  # 描述器
 
     def wrap(cls):
         for name in names:
@@ -94,7 +99,7 @@ def native_itermethods(names):
 
 
 class ImmutableListMixin(object):
-    """Makes a :class:`list` immutable.
+    """使一个:class:`list`成为不可变。
 
     .. versionadded:: 0.5
 
@@ -104,6 +109,7 @@ class ImmutableListMixin(object):
     _hash_cache = None
 
     def __hash__(self):
+        # 列表可哈希
         if self._hash_cache is not None:
             return self._hash_cache
         rv = self._hash_cache = hash(tuple(self))
@@ -113,39 +119,51 @@ class ImmutableListMixin(object):
         return type(self), (list(self),)
 
     def __delitem__(self, key):
+        # 不可删除一个键，抛出类型错误异常
         is_immutable(self)
 
     def __iadd__(self, other):
+        # += 运算符
+        # 不可删除一个键，抛出类型错误异常
         is_immutable(self)
 
+    # *= 运算符
     __imul__ = __iadd__
 
     def __setitem__(self, key, value):
+        # d[key] = value
         is_immutable(self)
 
     def append(self, item):
+        # obj.append(item)
         is_immutable(self)
 
+    # 像这样子的调用：obj.remove(ele) => obj.append(ele)
     remove = append
 
     def extend(self, iterable):
+        # 像这样子的调用：obj.extend(iteratable)
         is_immutable(self)
 
     def insert(self, pos, value):
+        # 像这样子的调用：obj.insert(pos, value)
         is_immutable(self)
 
     def pop(self, index=-1):
+        # 像这样子的调用：obj.pop(index)
         is_immutable(self)
 
     def reverse(self):
+        # 像这样子的调用：obj.reverse()
         is_immutable(self)
 
     def sort(self, cmp=None, key=None, reverse=None):
+        # 像这样子的调用：obj.sort(function_returns_boolean, None, None)
         is_immutable(self)
 
 
 class ImmutableList(ImmutableListMixin, list):
-    """An immutable :class:`list`.
+    """一个不可变的 :class:`list`.
 
     .. versionadded:: 0.5
 
@@ -157,7 +175,7 @@ class ImmutableList(ImmutableListMixin, list):
 
 
 class ImmutableDictMixin(object):
-    """Makes a :class:`dict` immutable.
+    """使一个 :class:`dict` 不可变。
 
     .. versionadded:: 0.5
 
@@ -179,30 +197,38 @@ class ImmutableDictMixin(object):
         return iteritems(self)
 
     def __hash__(self):
+        # 可哈希
         if self._hash_cache is not None:
             return self._hash_cache
         rv = self._hash_cache = hash(frozenset(self._iter_hashitems()))
         return rv
 
     def setdefault(self, key, default=None):
+        # 像这样子的调用：obj.setdefault(key, Noe)
         is_immutable(self)
 
     def update(self, *args, **kwargs):
+        # 像这样子的调用：obj.update(1, 3, 4, b=4, c=6)
         is_immutable(self)
 
     def pop(self, key, default=None):
+        # 像这样子的调用：obj.pop(key, None)
         is_immutable(self)
 
     def popitem(self):
+        # 像这样子的调用：obj.popitem()
         is_immutable(self)
 
     def __setitem__(self, key, value):
+        # 像这样子的调用：obj[key] = value
         is_immutable(self)
 
     def __delitem__(self, key):
+        # 像这样子的调用：del obj[key]
         is_immutable(self)
 
     def clear(self):
+        # 像这样子的调用：obj.clear()
         is_immutable(self)
 
 
