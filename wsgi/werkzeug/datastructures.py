@@ -233,7 +233,7 @@ class ImmutableDictMixin(object):
 
 
 class ImmutableMultiDictMixin(ImmutableDictMixin):
-    """Makes a :class:`MultiDict` immutable.
+    """使一个 :class:`MultiDict` 不可变。
 
     .. versionadded:: 0.5
 
@@ -241,12 +241,14 @@ class ImmutableMultiDictMixin(ImmutableDictMixin):
     """
 
     def __reduce_ex__(self, protocol):
+        # method of builtins.func instance helper for pickle
         return type(self), (list(iteritems(self, multi=True)),)
 
     def _iter_hashitems(self):
         return iteritems(self, multi=True)
 
     def add(self, key, value):
+        # obj.add(key, value)
         is_immutable(self)
 
     def popitemlist(self):
@@ -256,14 +258,16 @@ class ImmutableMultiDictMixin(ImmutableDictMixin):
         is_immutable(self)
 
     def setlist(self, key, new_list):
+        # obj.setlist(key, new_list)
         is_immutable(self)
 
     def setlistdefault(self, key, default_list=None):
+        # obj.setlistdefault(key, [])
         is_immutable(self)
 
 
 class UpdateDictMixin(object):
-    """Makes dicts call `self.on_update` on modifications.
+    """调用`self.on_update`来修改字典。
 
     .. versionadded:: 0.5
 
@@ -279,17 +283,20 @@ class UpdateDictMixin(object):
                 self.on_update(self)
             return rv
 
-        oncall.__name__ = name
+        oncall.__name__ = name  # 更改函数名字
         return oncall
 
     def setdefault(self, key, default=None):
+        # obj.setdefault(key, default_value)
         modified = key not in self
         rv = super(UpdateDictMixin, self).setdefault(key, default)
         if modified and self.on_update is not None:
+            # 允许修改并且对象的on_update属性不为None时，更新字典对象
             self.on_update(self)
         return rv
 
     def pop(self, key, default=_missing):
+        # obj.pop(key, None)
         modified = key in self
         if default is _missing:
             rv = super(UpdateDictMixin, self).pop(key)
@@ -308,33 +315,28 @@ class UpdateDictMixin(object):
 
 
 class TypeConversionDict(dict):
-    """Works like a regular dict but the :meth:`get` method can perform
-    type conversions.  :class:`MultiDict` and :class:`CombinedMultiDict`
-    are subclasses of this class and provide the same feature.
+    """想普通字典一样工作，但是:meth:`get`方法能够执行类型转换。
+    :class:`MultiDict` 和 :class:`CombinedMultiDict`是这个类
+    的子类并且提供同样的特性。
 
     .. versionadded:: 0.5
     """
 
     def get(self, key, default=None, type=None):
-        """Return the default value if the requested data doesn't exist.
-        If `type` is provided and is a callable it should convert the value,
-        return it or raise a :exc:`ValueError` if that is not possible.  In
-        this case the function will return the default as if the value was not
-        found:
+        """如果请求的数据不存在，返回默认值。如果提同`type`并且是可调用的，应该转换并返回这个值，
+        或者如果不可能进行转换， 则引起:exc:`ValueError`异常。在这种情况下，这个函数返回默认值
+        就好象这个值没有被找到一样：
 
         >>> d = TypeConversionDict(foo='42', bar='blub')
         >>> d.get('foo', type=int)
         42
-        >>> d.get('bar', -1, type=int)
+        >>> d.get('bar', -1, type=int)  # 键值对存在，但是值不能转换成`int`，因此返回-1
         -1
 
-        :param key: The key to be looked up.
-        :param default: The default value to be returned if the key can't
-                        be looked up.  If not further specified `None` is
-                        returned.
-        :param type: A callable that is used to cast the value in the
-                     :class:`MultiDict`.  If a :exc:`ValueError` is raised
-                     by this callable the default value is returned.
+        :param key: 被查找的key。
+        :param default: 如果key不能够被找到，返回的默认值。如果没有进一步的指定，则返回`None`。
+        :param type: 一个可用于转换在:class:`MultiDict`中的值的可调用对象。假如调用可调用
+                     对象进行转换过程中引起:exc:`ValueError`异常，则返回默认值。
         """
         try:
             rv = self[key]
@@ -349,16 +351,14 @@ class TypeConversionDict(dict):
 
 
 class ImmutableTypeConversionDict(ImmutableDictMixin, TypeConversionDict):
-    """Works like a :class:`TypeConversionDict` but does not support
-    modifications.
+    """像:class:`TypeConversionDict`一样工作，但是不支持修改操作。
 
     .. versionadded:: 0.5
     """
 
     def copy(self):
-        """Return a shallow mutable copy of this object.  Keep in mind that
-        the standard library's :func:`copy` function is a no-op for this class
-        like for any other python immutable type (eg: :class:`tuple`).
+        """返回这个对象的浅拷贝可变拷贝。注意标准库中的:func:`copy`函数对于这个类来说是一个空操作。
+        这个类像任何其他python的不可变类型一样（例如： :class:`tuple`）。
         """
         return TypeConversionDict(self)
 
@@ -384,20 +384,19 @@ class ViewItems(object):
         return iter(self.__get_items())
 
 
-@native_itermethods(["keys", "values", "items", "lists", "listvalues"])
+@native_itermethods(["keys", "values", "items", "lists", "listvalues"])  # 设置这类的方法
 class MultiDict(TypeConversionDict):
-    """A :class:`MultiDict` is a dictionary subclass customized to deal with
+    """:class:`MultiDict`是一个自定义用来处理一个键对应多个值的字典子类，
+    举个例子，这个类在包装器中的解析函数中被使用到。因为一些HTML表单元素会给同一个键传递多个值。
+    A :class:`MultiDict` is a dictionary subclass customized to deal with
     multiple values for the same key which is for example used by the parsing
     functions in the wrappers.  This is necessary because some HTML form
     elements pass multiple values for the same key.
 
-    :class:`MultiDict` implements all standard dictionary methods.
-    Internally, it saves all values for a key as a list, but the standard dict
-    access methods will only return the first value for a key. If you want to
-    gain access to the other values, too, you have to use the `list` methods as
-    explained below.
+    :class:`MultiDict`实现了所有的标准字典的方法。本质上，使用列表保存了一个键对应的所有值，但是
+    这个标准字典访问方法会只返回一个键的第一个值。如果也想访问其他值，得使用下方描述的`list`方法。
 
-    Basic Usage:
+    基本使用:
 
     >>> d = MultiDict([('a', 'b'), ('a', 'c')])
     >>> d
@@ -409,21 +408,16 @@ class MultiDict(TypeConversionDict):
     >>> 'a' in d
     True
 
-    It behaves like a normal dict thus all dict functions will only return the
-    first value when multiple values for one key are found.
+    表现的就像一个普通的字典，因此所有的字典函数之返回第一个值，当一个键对应的对个指被找到的时候。
+    
+    从 Werkzeug 0.3 往前，由这个类引发的`KerError`异常也是:exc:`~exceptions.BadRequest` Http 异常的子类，
+    并且如果在HTTP异常的所有捕获中被捕获到，将会渲染一个``400 BAD REQUEST`` 的页面。
 
-    From Werkzeug 0.3 onwards, the `KeyError` raised by this class is also a
-    subclass of the :exc:`~exceptions.BadRequest` HTTP exception and will
-    render a page for a ``400 BAD REQUEST`` if caught in a catch-all for HTTP
-    exceptions.
+    一个 :class:`MultiDict`能够通过包含元组``(key, value)``，字典，一个:class:`MultiDict` 或
+    来自 Werkzeug 0.2 之前的一些关键字参数的一个可迭代对象来构造。
 
-    A :class:`MultiDict` can be constructed from an iterable of
-    ``(key, value)`` tuples, a dict, a :class:`MultiDict` or from Werkzeug 0.2
-    onwards some keyword parameters.
-
-    :param mapping: the initial value for the :class:`MultiDict`.  Either a
-                    regular dict, an iterable of ``(key, value)`` tuples
-                    or `None`.
+    :param mapping: :class:`MultiDict`的初始值。要么是一个普通的字典，一个包含
+                    ``(key,value)``元组的可迭代对象或者`None`。
     """
 
     def __init__(self, mapping=None):
@@ -454,11 +448,10 @@ class MultiDict(TypeConversionDict):
         dict.update(self, value)
 
     def __getitem__(self, key):
-        """Return the first data value for this key;
-        raises KeyError if not found.
+        """返回这个键的第一个数据值;如果这个键没有被找到，则引发KeyError异常。
 
-        :param key: The key to be looked up.
-        :raise KeyError: if the key does not exist.
+        :param key: 被查询的键。
+        :raise KeyError: 如果键不存在。
         """
 
         if key in self:
