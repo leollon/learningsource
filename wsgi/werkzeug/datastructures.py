@@ -461,34 +461,32 @@ class MultiDict(TypeConversionDict):
         raise exceptions.BadRequestKeyError(key)
 
     def __setitem__(self, key, value):
-        """Like :meth:`add` but removes an existing key first.
+        """像 :meth:`add` 一样，但是首先移除一个存在的键。
 
-        :param key: the key for the value.
-        :param value: the value to set.
+        :param key: 键值对中的的键。
+        :param value: 设置键对应的值。
         """
         dict.__setitem__(self, key, [value])
 
     def add(self, key, value):
-        """Adds a new value for the key.
+        """给这个键添加新的值。
 
         .. versionadded:: 0.6
 
-        :param key: the key for the value.
-        :param value: the value to add.
+        :param key: 键值对中的键。
+        :param value: 添加的值。
         """
         dict.setdefault(self, key, []).append(value)
 
     def getlist(self, key, type=None):
-        """Return the list of items for a given key. If that key is not in the
-        `MultiDict`, the return value will be an empty list.  Just as `get`
-        `getlist` accepts a `type` parameter.  All items will be converted
-        with the callable defined there.
+        """返回一个键所有项的列表。如果那个键不在`MultiDict`中，返回的的值将会是空的列表。
+        就像`get` `getlist` 接受一个`type` 参数。所有的项都将使用定义在那里的可调用对象
+        进行转换。
 
-        :param key: The key to be looked up.
-        :param type: A callable that is used to cast the value in the
-                     :class:`MultiDict`.  If a :exc:`ValueError` is raised
-                     by this callable the value will be removed from the list.
-        :return: a :class:`list` of all the values for the key.
+        :param key: 被查询的键。
+        :param type: 用来转换在:class:`MultiDict`中的值的可调用对象。
+                     如果这个可调用对象引发异常，这个值将会被从列表中移除。
+        :return: 包含键的所有值的一个 :class:`list`。
         """
         try:
             rv = dict.__getitem__(self, key)
@@ -505,9 +503,7 @@ class MultiDict(TypeConversionDict):
         return result
 
     def setlist(self, key, new_list):
-        """Remove the old values for a key and add new ones.  Note that the list
-        you pass the values in will be shallow-copied before it is inserted in
-        the dictionary.
+        """移除一个键对应的旧值并添加新的值。注意往列表传递的值在被插入到字典中之前将会是浅拷贝。
 
         >>> d = MultiDict()
         >>> d.setlist('foo', ['1', '2'])
@@ -516,19 +512,16 @@ class MultiDict(TypeConversionDict):
         >>> d.getlist('foo')
         ['1', '2']
 
-        :param key: The key for which the values are set.
-        :param new_list: An iterable with the new values for the key.  Old values
-                         are removed first.
+        :param key: 被设置值的键。
+        :param new_list: 一个可以用来设置键的新值的可迭代对象。旧的值将首先被移除。
         """
         dict.__setitem__(self, key, list(new_list))
 
     def setdefault(self, key, default=None):
-        """Returns the value for the key if it is in the dict, otherwise it
-        returns `default` and sets that value for `key`.
+        """假如这个键在字典中，返回这个键的值，否则返回`default`并且这个这个键的值为`default`。
 
-        :param key: The key to be looked up.
-        :param default: The default value to be returned if the key is not
-                        in the dict.  If not further specified it's `None`.
+        :param key: 被查询的键。
+        :param default: 如果这个键不存在字典中，返回的默认值。如果没有特别指定，那么返回`None`。
         """
         if key not in self:
             self[key] = default
@@ -537,21 +530,17 @@ class MultiDict(TypeConversionDict):
         return default
 
     def setlistdefault(self, key, default_list=None):
-        """Like `setdefault` but sets multiple values.  The list returned
-        is not a copy, but the list that is actually used internally.  This
-        means that you can put new values into the dict by appending items
-        to the list:
+        """像`default`一样，但是是设置多个值。返回的列表不是一份拷贝，而是内部实际上被使用的列表。
+        意味着可以往列表中添加（append）新值来将新的值放入字典中：
 
         >>> d = MultiDict({"foo": 1})
         >>> d.setlistdefault("foo").extend([2, 3])
         >>> d.getlist("foo")
         [1, 2, 3]
 
-        :param key: The key to be looked up.
-        :param default_list: An iterable of default values.  It is either copied
-                             (in case it was a list) or converted into a list
-                             before returned.
-        :return: a :class:`list`
+        :param key: 要查询的键。
+        :param default_list: 一个默认值的可迭代对象。是可拷贝的（万一是列表的情况）抑或是在返回之前可以转换成一个列表的对象。
+        :return: 一个 :class:`list`
         """
         if key not in self:
             default_list = list(default_list or ())
@@ -561,11 +550,10 @@ class MultiDict(TypeConversionDict):
         return default_list
 
     def items(self, multi=False):
-        """Return an iterator of ``(key, value)`` pairs.
+        """返回一个``(key, value)``对的迭代器。
 
-        :param multi: If set to `True` the iterator returned will have a pair
-                      for each value of each key.  Otherwise it will only
-                      contain pairs for the first value of each key.
+        :param multi: 如果设置为`True`，返回的迭代器会以对的形式包含每个键的每个值。
+                      否则将只是包含每个键和每个键第一个值的对。
         """
 
         for key, values in iteritems(dict, self):
@@ -576,25 +564,25 @@ class MultiDict(TypeConversionDict):
                 yield key, values[0]
 
     def lists(self):
-        """Return a iterator of ``(key, values)`` pairs, where values is the list
-        of all values associated with the key."""
+        """返回一个``(key, values)``对的迭代器。迭代器里的值是关联这个键的所有值的列表。
+        """
 
         for key, values in iteritems(dict, self):
             yield key, list(values)
 
     def keys(self):
+        """返回一个迭代所有键的迭代器。"""
         return iterkeys(dict, self)
 
     __iter__ = keys
 
     def values(self):
-        """Returns an iterator of the first value on every key's value list."""
+        """返回迭代每个键的值列表中第一个值的迭代器。"""
         for values in itervalues(dict, self):
             yield values[0]
 
     def listvalues(self):
-        """Return an iterator of all values associated with a key.  Zipping
-        :meth:`keys` and this is the same as calling :meth:`lists`:
+        """返回可以迭代所有关联一个键所有值的迭代器。压缩:meth:`keys`并且和调用:meth:`lists`是一样的：
 
         >>> d = MultiDict({"foo": [1, 2, 3]})
         >>> zip(d.keys(), d.listvalues()) == d.lists()
@@ -604,29 +592,27 @@ class MultiDict(TypeConversionDict):
         return itervalues(dict, self)
 
     def copy(self):
-        """Return a shallow copy of this object."""
+        """返回这个对象的浅拷贝。"""
         return self.__class__(self)
 
     def deepcopy(self, memo=None):
-        """Return a deep copy of this object."""
+        """返回这对象的深拷贝。"""
         return self.__class__(deepcopy(self.to_dict(flat=False), memo))
 
     def to_dict(self, flat=True):
-        """Return the contents as regular dict.  If `flat` is `True` the
-        returned dict will only have the first item present, if `flat` is
-        `False` all values will be returned as lists.
+        """返回`MultiDict`的内容作为普通的字典。如果`flat`为`True`，返回的字典将只有第一项存在，
+        如果`flat`为`False`，所有的值放入到列表中被返回。
 
-        :param flat: If set to `False` the dict returned will have lists
-                     with all the values in it.  Otherwise it will only
-                     contain the first value for each key.
-        :return: a :class:`dict`
+        :param flat: 如果设置为`False`，返回的字典将会含有所有值的列表在里面。
+                     否则，将只包含有每个键的第一个值。
+        :return: 一个:class:`dict`
         """
         if flat:
             return dict(iteritems(self))
         return dict(self.lists())
 
     def update(self, other_dict):
-        """update() extends rather than replaces existing key lists:
+        """更新扩展而不是替换存在的键列表。:
 
         >>> a = MultiDict({'x': 1})
         >>> b = MultiDict({'x': 2, 'y': 3})
@@ -634,8 +620,7 @@ class MultiDict(TypeConversionDict):
         >>> a
         MultiDict([('y', 3), ('x', 1), ('x', 2)])
 
-        If the value list for a key in ``other_dict`` is empty, no new values
-        will be added to the dict and the key will not be created:
+        如果值列表在``other_dict``中的一个键是空的，没有的新的值会被加入到字典中并且不会创建这个键：
 
         >>> x = {'empty_list': []}
         >>> y = MultiDict()
@@ -647,8 +632,7 @@ class MultiDict(TypeConversionDict):
             MultiDict.add(self, key, value)
 
     def pop(self, key, default=_missing):
-        """Pop the first item for a list on the dict.  Afterwards the
-        key is removed from the dict, so additional values are discarded:
+        """弹出字典中一个列表中的第一项。之后这个键从字典中被移除，因此，额外的值都会被丢弃：
 
         >>> d = MultiDict({"foo": [1, 2, 3]})
         >>> d.pop("foo")
@@ -656,9 +640,8 @@ class MultiDict(TypeConversionDict):
         >>> "foo" in d
         False
 
-        :param key: the key to pop.
-        :param default: if provided the value to return if the key was
-                        not in the dictionary.
+        :param key: 要弹出的键。
+        :param default: 如果提供返回值则返回这个值，假如这个键没在字典中。
         """
         try:
             lst = dict.pop(self, key)
@@ -685,17 +668,15 @@ class MultiDict(TypeConversionDict):
             raise exceptions.BadRequestKeyError(e.args[0])
 
     def poplist(self, key):
-        """Pop the list for a key from the dict.  If the key is not in the dict
-        an empty list is returned.
+        """从字典中弹出键对应的列表。如果键不在字典中，返回一个空列表。
 
         .. versionchanged:: 0.5
-           If the key does no longer exist a list is returned instead of
-           raising an error.
+           如果键不再存在，返回一个列表而不是引发错误异常。
         """
         return dict.pop(self, key, [])
 
     def popitemlist(self):
-        """Pop a ``(key, list)`` tuple from the dict."""
+        """从字典中弹出一个``(key, list)``元组。"""
         try:
             return dict.popitem(self)
         except KeyError as e:
@@ -712,10 +693,8 @@ class MultiDict(TypeConversionDict):
 
 
 class _omd_bucket(object):
-    """Wraps values in the :class:`OrderedMultiDict`.  This makes it
-    possible to keep an order over multiple different keys.  It requires
-    a lot of extra memory and slows down access a lot, but makes it
-    possible to access elements in O(1) and iterate in O(n).
+    """包装在:class:`OrderMultiDict`中的值。使得多个不同的键可能保持顺序。需要大量的额外内存
+    并且严重地减缓访问速度，但是却可能使得能够以O(1)来访问元素并且以O(n)来迭代这些元素。
     """
 
     __slots__ = ("prev", "key", "value", "next")
