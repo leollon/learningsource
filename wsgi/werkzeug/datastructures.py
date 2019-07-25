@@ -695,6 +695,8 @@ class MultiDict(TypeConversionDict):
 class _omd_bucket(object):
     """包装在:class:`OrderMultiDict`中的值。使得多个不同的键可能保持顺序。需要大量的额外内存
     并且严重地减缓访问速度，但是却可能使得能够以O(1)来访问元素并且以O(n)来迭代这些元素。
+
+    这是一个双向链表的数据结构
     """
 
     __slots__ = ("prev", "key", "value", "next")
@@ -706,37 +708,40 @@ class _omd_bucket(object):
         self.next = None
 
         if omd._first_bucket is None:
+            # 空的顺序字典
             omd._first_bucket = self
         if omd._last_bucket is not None:
+            # 空的顺序字典
             omd._last_bucket.next = self
         omd._last_bucket = self
 
     def unlink(self, omd):
+        # 删除一个结点
         if self.prev:
+            # 将当前节点的前续结点的后续结点的地址指向当前结点的后续结点
             self.prev.next = self.next
         if self.next:
+            # 将当前节点的后续结点的前续结点的地址指向当前结点的前续结点
             self.next.prev = self.prev
         if omd._first_bucket is self:
-            omd._first_bucket = self.next
+            # 首结点是当前结点，并且只有一个结点了
+            omd._first_bucket = self.next  # None
         if omd._last_bucket is self:
-            omd._last_bucket = self.prev
+            # 尾结点是当前结点，并且只有一个结点了
+            omd._last_bucket = self.prev  # None
 
 
 @native_itermethods(["keys", "values", "items", "lists", "listvalues"])
 class OrderedMultiDict(MultiDict):
-    """Works like a regular :class:`MultiDict` but preserves the
-    order of the fields.  To convert the ordered multi dict into a
-    list you can use the :meth:`items` method and pass it ``multi=True``.
+    """像普通的:class:`MultiDict`一的功能，但是保持字段顺序。为了转换有序的
+    multi dict 为一个一个列表，可以使用:meth:`items`方法并且给这个方法传递``multi=True``。
 
-    In general an :class:`OrderedMultiDict` is an order of magnitude
-    slower than a :class:`MultiDict`.
+    通常来说，:class:`OrderMultiDict`比起:class:`MultiDict`要慢一个数量级。
 
     .. admonition:: note
 
-       Due to a limitation in Python you cannot convert an ordered
-       multi dict into a regular dict by using ``dict(multidict)``.
-       Instead you have to use the :meth:`to_dict` method, otherwise
-       the internal bucket objects are exposed.
+        由于Python中的限制，不能通过使用``dict(multidict)``来讲一个有序的字典转换成普通的字典。
+        而是得使用:meth:`to_dict`方法，否则内部的桶对象会被公开出来。
     """
 
     def __init__(self, mapping=None):
@@ -746,9 +751,12 @@ class OrderedMultiDict(MultiDict):
             OrderedMultiDict.update(self, mapping)
 
     def __eq__(self, other):
+        # 比较两个字典是否相等，dict1 == dict2
         if not isinstance(other, MultiDict):
+            # other 不是 MultiDict 的实例。
             return NotImplemented
         if isinstance(other, OrderedMultiDict):
+            # self 和 other 都是有序字典
             iter1 = iteritems(self, multi=True)
             iter2 = iteritems(other, multi=True)
             try:
@@ -757,25 +765,34 @@ class OrderedMultiDict(MultiDict):
                     if k1 != k2 or v1 != v2:
                         return False
             except StopIteration:
+                # iter2率先迭代完
                 return False
             try:
+                # iter1率先迭代完，检测iter2
                 next(iter2)
             except StopIteration:
+                # iter1迭代结束的同时，iter2也迭代结束，此时可说明 self 和 other 是相等的
                 return True
             return False
+        # other 是 MultiDict 的实例。
         if len(self) != len(other):
             return False
         for key, values in iterlists(self):
+            # key 可能在 other 字典中，也可能不在，
+            # 在的时候，返回key对应的值列表，不再的时候，返回空列表。
             if other.getlist(key) != values:
+                # 列表的长度不想等或列表中的值不相等
                 return False
+        # 有序字典中的键值对和普通字典 other 中的键值对相等
         return True
 
-    __hash__ = None
+    __hash__ = None  # 有序字典不可以进行哈希
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def __reduce_ex__(self, protocol):
+        # method of builtins.function instance helper for pickle
         return type(self), (list(iteritems(self, multi=True)),)
 
     def __getstate__(self):
@@ -830,6 +847,7 @@ class OrderedMultiDict(MultiDict):
             ptr = ptr.next
 
     def listvalues(self):
+        # 生成键对应的值列表
         for _key, values in iterlists(self):
             yield values
 
