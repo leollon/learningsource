@@ -716,7 +716,7 @@ class _omd_bucket(object):
         omd._last_bucket = self
 
     def unlink(self, omd):
-        # 删除一个结点
+        # 断开链表中结点之间的连接
         if self.prev:
             # 将当前节点的前续结点的后续结点的地址指向当前结点的后续结点
             self.prev.next = self.next
@@ -799,17 +799,20 @@ class OrderedMultiDict(MultiDict):
         return list(iteritems(self, multi=True))
 
     def __setstate__(self, values):
-        dict.clear(self)
+        dict.clear(self) # 清除有序字典
         for key, value in values:
+            # 往有序字典添加键值对
             self.add(key, value)
 
     def __getitem__(self, key):
         if key in self:
+            # 获取链表中key对应的第一个list的omd_bucket对象的值
             return dict.__getitem__(self, key)[0].value
+        # 键不存在于字典中
         raise exceptions.BadRequestKeyError(key)
 
     def __setitem__(self, key, value):
-        self.poplist(key)
+        self.poplist(key)  # 将字典中中键对应的值列表弹出
         self.add(key, value)
 
     def __delitem__(self, key):
@@ -852,9 +855,12 @@ class OrderedMultiDict(MultiDict):
             yield values
 
     def add(self, key, value):
+        # 往链表中添加元素
         dict.setdefault(self, key, []).append(_omd_bucket(self, key, value))
 
     def getlist(self, key, type=None):
+        """获取键对应的值列表
+        """
         try:
             rv = dict.__getitem__(self, key)
         except KeyError:
@@ -870,7 +876,7 @@ class OrderedMultiDict(MultiDict):
         return result
 
     def setlist(self, key, new_list):
-        self.poplist(key)
+        self.poplist(key)  # 清空字典
         for value in new_list:
             self.add(key, value)
 
@@ -878,16 +884,46 @@ class OrderedMultiDict(MultiDict):
         raise TypeError("setlistdefault is unsupported for ordered multi dicts")
 
     def update(self, mapping):
+        """更新字典，往字典中添加新元素"""
         for key, value in iter_multi_items(mapping):
             OrderedMultiDict.add(self, key, value)
 
     def poplist(self, key):
+        """弹出一个键对应的值列表
+        
+        >>> d = OrderedMultiDict()
+        >>> d.add("hello", "world")
+        >>> d.add("halov, "world")
+        >>> d.add("hello", "hello world")
+        >>> d
+        OrderedMultiDict([("hello", "world"), ("halo", "world"), ("hello", "hello world")])
+        >>> d.poplist("hello")
+        ['world', 'hello world']
+        >>> d
+        OrderedMultiDict([("halo", "world")])
+        """
+        # TODO: 似乎可以将O(2n) 降到 O(n)呢？
         buckets = dict.pop(self, key, ())
         for bucket in buckets:
             bucket.unlink(self)
         return [x.value for x in buckets]
 
     def pop(self, key, default=_missing):
+        """弹出一个键对应列表中的第一个值，并且删除键对应的所有值。
+
+        >>> d = OrderedMultiDict()
+        >>> d
+        OrderedMultiDict([])
+        >>> d.add("hello", "world")
+        >>> d.add("halov, "world")
+        >>> d.add("hello", "hello world")
+        >>> d
+        OrderedMultiDict([("hello", "world"), ("halo", "world"), ("hello", "hello world")])
+        >>> d.pop("hello")
+        world
+        >>> d
+        OrderedMultiDict([("halo", "world")])
+        """
         try:
             buckets = dict.pop(self, key)
         except KeyError:
@@ -899,6 +935,24 @@ class OrderedMultiDict(MultiDict):
         return buckets[0].value
 
     def popitem(self):
+        """弹出键值对，但是只取键对应的值列表的第一个
+
+        >>> d = OrderedMultiDict()
+        >>> d
+        OrderedMultiDict([])
+        >>> d.add('a', 'aa')
+        >>> d.add('a', 'bb')
+        >>> d.add('b', 'abb')
+        >>> d.add('c', 'ccccc')
+        >>> d.add('c', 'abc')
+        >>> d.add('a', 'world')
+        >>> d  # 键按字典进行排序
+        OrderedMultiDict([('a', 'aa'), ('a', 'bb'), ('b', 'abb'), ('c', 'ccccc'), ('c', 'abc'), ('a', 'world')])
+        >>> d.popitem()
+        ('c', 'ccccc')  # 从最大的键pop，然后取键对应的值列表的第一个元素
+        >>> d.popitem()
+        ('b', 'abb')
+        """
         try:
             key, buckets = dict.popitem(self)
         except KeyError as e:
@@ -908,6 +962,27 @@ class OrderedMultiDict(MultiDict):
         return key, buckets[0].value
 
     def popitemlist(self):
+        """弹出一个最大键的值列表
+        >>> d = OrderedMultiDict()
+        >>> d
+        OrderedMultiDict([])
+        >>> d.add('a', 'aa')
+        >>> d.add('a', 'bb')
+        >>> d.add('b', 'abb')
+        >>> d.add('c', 'ccccc')
+        >>> d.add('c', 'abc')
+        >>> d.add('a', 'world')
+        >>> d  # 键按字典进行排序
+        OrderedMultiDict([('a', 'aa'), ('a', 'bb'), ('b', 'abb'), ('c', 'ccccc'), ('c', 'abc'), ('a', 'world')])
+        >>> d.popitemlist()
+        ('c', ['ccccc', 'abc'])  # 从最大的键pop，然后取键对应的值列表的第一个元素
+        >>> d
+        OrderedMultiDict([('a', 'aa'), ('a', 'bb'), ('b', 'abb'), ('a', 'world')])
+        >>> d.popitemlist()
+        ('b', 'abb')
+        >>> d
+        OrderedMultiDict([('a', 'aa'), ('a', 'bb'), ('a', 'world')])
+        """
         try:
             key, buckets = dict.popitem(self)
         except KeyError as e:
