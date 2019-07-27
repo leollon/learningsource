@@ -920,7 +920,7 @@ class OrderedMultiDict(MultiDict):
         >>> d
         OrderedMultiDict([("hello", "world"), ("halo", "world"), ("hello", "hello world")])
         >>> d.pop("hello")
-        world
+        'world'
         >>> d
         OrderedMultiDict([("halo", "world")])
         """
@@ -993,51 +993,60 @@ class OrderedMultiDict(MultiDict):
 
 
 def _options_header_vkw(value, kw):
+    """
+    >>> _options_header_vkw('attachment', filename='foo.png')
+    'attachment; filename=foo.png'
+    """
     return dump_options_header(
         value, dict((k.replace("_", "-"), v) for k, v in kw.items())
     )
 
 
 def _unicodify_header_value(value):
+    """
+    >>> _unicodify_header_value(b'hello')
+    'hello'
+
+    >>> _unicodify_header_value(1234)
+    '1234'
+    """
     if isinstance(value, bytes):
         value = value.decode("latin-1")
     if not isinstance(value, text_type):
+        # value = str(value)
         value = text_type(value)
     return value
 
 
 @native_itermethods(["keys", "values", "items"])
 class Headers(object):
-    """An object that stores some headers.  It has a dict-like interface
+    """存储一些头部的一个对象。这个对象有一个类似字典的接口，但是是被排好序的并且能够多次存储相同的键。
+    
+    An object that stores some headers.  It has a dict-like interface
     but is ordered and can store the same keys multiple times.
 
-    This data structure is useful if you want a nicer way to handle WSGI
-    headers which are stored as tuples in a list.
+    这个数据结构非常有用，如果想要一种更好的方式来处理作为元组存储在一个列表中的WSGI头部。
 
-    From Werkzeug 0.3 onwards, the :exc:`KeyError` raised by this class is
-    also a subclass of the :class:`~exceptions.BadRequest` HTTP exception
-    and will render a page for a ``400 BAD REQUEST`` if caught in a
-    catch-all for HTTP exceptions.
+    从Werkzeug 0.3 往前，有这类引起的:exc:`KeyError`异常也是一个:class:`~exceptions.BadRequest` HTTP 异常的子类，
+    并且如果在所有的HTTP异常捕获中被捕获，则会渲染一个``400 BAD REQUEST``的页面出来。
+    
 
-    Headers is mostly compatible with the Python :class:`wsgiref.headers.Headers`
-    class, with the exception of `__getitem__`.  :mod:`wsgiref` will return
-    `None` for ``headers['missing']``, whereas :class:`Headers` will raise
-    a :class:`KeyError`.
+    Headers大部分与Python :class:`wsgiref.headers.Headers`类相兼容，除了`__getitem__`之外。
+    :mod:`wsgiref`当``headers['missing`]``时，返回`None`，然而:class:`Headers`会引起
+    :class:`KeyError`异常。
 
-    To create a new :class:`Headers` object pass it a list or dict of headers
-    which are used as default values.  This does not reuse the list passed
-    to the constructor for internal usage.
+    为了创建一个新的:class:`Headers`对象，给它传一个用来作为默认值的头部列表或字典。
+    这不会重用传递给构造函数以供内部使用的列表。
+    
 
-    :param defaults: The list of default values for the :class:`Headers`.
+    :param defaults: 传递给:class:`Headers`的默认值列表。
 
     .. versionchanged:: 0.9
-       This data structure now stores unicode values similar to how the
-       multi dicts do it.  The main difference is that bytes can be set as
-       well which will automatically be latin1 decoded.
+        这个数据结构存储unicode值的方式类似于multi dict处理它的方式。
+        主要的不同点是字节数据也能够被设置，它能够自动地被 lating1 解码。
 
     .. versionchanged:: 0.9
-       The :meth:`linked` function was removed without replacement as it
-       was an API that does not support the changes to the encoding model.
+        :meth:`linked`函数无可替代地被移除了，因为它是一个不支持改变编码模型的的API。
     """
 
     def __init__(self, defaults=None):
@@ -1060,9 +1069,8 @@ class Headers(object):
         for k, v in self._list:
             if k.lower() == ikey:
                 return v
-        # micro optimization: if we are in get mode we will catch that
-        # exception one stack level down so we can raise a standard
-        # key error instead of our special one.
+        # 小小的优化：如果处在get模式中，这将会捕获一个堆栈层级的异常，
+        # 因此可以引起一个标准的异常而不是特殊的异常。
         if _get_mode:
             raise KeyError()
         raise exceptions.BadRequestKeyError(key)
@@ -1076,30 +1084,24 @@ class Headers(object):
         return not self.__eq__(other)
 
     def get(self, key, default=None, type=None, as_bytes=False):
-        """Return the default value if the requested data doesn't exist.
-        If `type` is provided and is a callable it should convert the value,
-        return it or raise a :exc:`ValueError` if that is not possible.  In
-        this case the function will return the default as if the value was not
-        found:
+        """如果请求的数据不存在，返回默认值。如果提供`type`，并且是一个可调用对象，那么应该是转换这个值，
+        并返回它或者假设不能进行转换时，则引起:exc:`ValueError`异常。在这个例子中，这个函数将返回默认值，
+        就好像这个值没有被找到一样：
 
         >>> d = Headers([('Content-Length', '42')])
         >>> d.get('Content-Length', type=int)
         42
 
-        If a headers object is bound you must not add unicode strings
-        because no encoding takes place.
+        如果一个头部对象被绑定，则禁止添加unicode字符串，因为不会进行编码。
 
         .. versionadded:: 0.9
-           Added support for `as_bytes`.
+            添加`as_bytes`支持。
 
-        :param key: The key to be looked up.
-        :param default: The default value to be returned if the key can't
-                        be looked up.  If not further specified `None` is
-                        returned.
-        :param type: A callable that is used to cast the value in the
-                     :class:`Headers`.  If a :exc:`ValueError` is raised
-                     by this callable the default value is returned.
-        :param as_bytes: return bytes instead of unicode strings.
+        :param key: 被查询的键。
+        :param default: 键不能被找到时返回的默认值。如果没有特别指定，则返回`None`。
+        :param type: 用来在:class:`Headers`中转换值类型的可调用对象。
+                     如果这个可调用对象引起:exc:`ValueError`异常，则返回默认值。
+        :param as_bytes: 返回字节数据而不是unicode字符串。
         """
         try:
             rv = self.__getitem__(key, _get_mode=True)
@@ -1115,20 +1117,19 @@ class Headers(object):
             return default
 
     def getlist(self, key, type=None, as_bytes=False):
-        """Return the list of items for a given key. If that key is not in the
-        :class:`Headers`, the return value will be an empty list.  Just as
-        :meth:`get` :meth:`getlist` accepts a `type` parameter.  All items will
-        be converted with the callable defined there.
+        """返回一个键的值列表。如果这个键不在:class:`Headers`中，返回值将会是一个空列表。
+        就像:meth:`get`一样，:meth:`getlist`接受一个`type`参数。所有放入返回列表中的值
+        将使用这个可调用对象来转换。
 
         .. versionadded:: 0.9
-           Added support for `as_bytes`.
+           添加`as_bytes`支持。
 
-        :param key: The key to be looked up.
-        :param type: A callable that is used to cast the value in the
-                     :class:`Headers`.  If a :exc:`ValueError` is raised
-                     by this callable the value will be removed from the list.
-        :return: a :class:`list` of all the values for the key.
-        :param as_bytes: return bytes instead of unicode strings.
+        :param key: 被查询的键。
+        :param type: 用来转换存储在:class:`Headers`对象中的值的可调用对象。
+                     如果这个可调用对象引起:exc:`ValueError`异常，这个值将
+                     不会放入返回的列表中。
+        :return: 键对应的所有的值的列表。
+        :param as_bytes: 返回字节数据而不是unicode字符串。
         """
         ikey = key.lower()
         result = []
@@ -1145,10 +1146,9 @@ class Headers(object):
         return result
 
     def get_all(self, name):
-        """Return a list of all the values for the named field.
+        """返回命名字段的所有值的一个列表。
 
-        This method is compatible with the :mod:`wsgiref`
-        :meth:`~wsgiref.headers.Headers.get_all` method.
+        这个方法与 :mod:`wsgiref` 的 :meth:`~wsgiref.headers.Headers.get_all` 方法相兼容。
         """
         return self.getlist(name)
 
@@ -1159,16 +1159,19 @@ class Headers(object):
             yield key, value
 
     def keys(self, lower=False):
+        """生成Hearder对象中所有的键
+        """
         for key, _ in iteritems(self, lower):
             yield key
 
     def values(self):
+        """生成Hearder对象中所有的值
+        """
         for _, value in iteritems(self):
             yield value
 
     def extend(self, iterable):
-        """Extend the headers with a dict or an iterable yielding keys and
-        values.
+        """使用一个字典或可生成键和值的可迭代对象来扩充头部对象。
         """
         if isinstance(iterable, dict):
             for key, value in iteritems(iterable):

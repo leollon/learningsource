@@ -259,6 +259,11 @@ def dump_options_header(header, options):
 
     :param header: 要转存的头部
     :param options: 要添加的选项的字典
+
+    >>> dump_options_header("foo", {"bar": 42})
+    foo; bar=42
+    >>> dump_options_header("foo", {"bar": 42, "fizz": None})
+    foo; bar=42; fizz  # or foo; fizz; bar=42
     """
     segments = []
     if header is not None:
