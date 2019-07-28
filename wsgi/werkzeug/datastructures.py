@@ -1185,6 +1185,7 @@ class Headers(object):
                 self.add(key, value)
 
     def __delitem__(self, key, _index_operation=True):
+        """删除一个键以及对应的值"""
         if _index_operation and isinstance(key, (integer_types, slice)):
             del self._list[key]
             return
@@ -1196,20 +1197,19 @@ class Headers(object):
         self._list[:] = new
 
     def remove(self, key):
-        """Remove a key.
+        """移除一个键。
 
-        :param key: The key to be removed.
+        :param key: 要被移除的键。
         """
         return self.__delitem__(key, _index_operation=False)
 
     def pop(self, key=None, default=_missing):
-        """Removes and returns a key or index.
+        """移除并且返回一个键或索引。
 
-        :param key: The key to be popped.  If this is an integer the item at
-                    that position is removed, if it's a string the value for
-                    that key is.  If the key is omitted or `None` the last
-                    item is removed.
-        :return: an item.
+        :param key: 要被弹出的键。如果这是一个整数，将移除在这个位置的项，
+                    如果是一个字符串，移除这个键对应的值。
+                    如果省略这个键或者为`None`，则移除最后一项。
+        :return: Headers对象中的一项。
         """
         if key is None:
             return self._list.pop()
@@ -1225,11 +1225,13 @@ class Headers(object):
         return rv
 
     def popitem(self):
-        """Removes a key or index and returns a (key, value) item."""
+        """移除一个键或者索引并且返回一个(key, value)元组的项。"""
         return self.pop()
 
     def __contains__(self, key):
-        """Check if a key is present."""
+        """检查一个是否存在。
+        `in`操作符
+        """
         try:
             self.__getitem__(key, _get_mode=True)
         except KeyError:
@@ -1239,27 +1241,25 @@ class Headers(object):
     has_key = __contains__
 
     def __iter__(self):
-        """Yield ``(key, value)`` tuples."""
+        """生成``(key, value)``元组。"""
         return iter(self._list)
 
     def __len__(self):
         return len(self._list)
 
     def add(self, _key, _value, **kw):
-        """Add a new header tuple to the list.
+        """添加新的头部元组到列表。
 
-        Keyword arguments can specify additional parameters for the header
-        value, with underscores converted to dashes::
+        关键字参数可以给header value指定额外的参数，这些参数携带的下划线被转换为破折号：
 
         >>> d = Headers()
         >>> d.add('Content-Type', 'text/plain')
         >>> d.add('Content-Disposition', 'attachment', filename='foo.png')
 
-        The keyword argument dumping uses :func:`dump_options_header`
-        behind the scenes.
+        关键字参数的dumping使用:func:`dump_options_header`来支撑。
 
         .. versionadded:: 0.4.1
-            keyword arguments were added for :mod:`wsgiref` compatibility.
+            添加关键字参数来兼容:mod:`wsgiref`.
         """
         if kw:
             _value = _options_header_vkw(_value, kw)
@@ -1270,6 +1270,8 @@ class Headers(object):
 
     def _validate_value(self, value):
         if not isinstance(value, text_type):
+            # text_type = unicode # py2
+            # text_type = str # py3
             raise TypeError("Value should be unicode.")
         if u"\n" in value or u"\r" in value:
             raise ValueError(
@@ -1278,37 +1280,35 @@ class Headers(object):
             )
 
     def add_header(self, _key, _value, **_kw):
-        """Add a new header tuple to the list.
+        """添加新头部元组到列表中。
 
-        An alias for :meth:`add` for compatibility with the :mod:`wsgiref`
-        :meth:`~wsgiref.headers.Headers.add_header` method.
+        为了兼容:mod:`wsgiref` :meth:`~wsgiref.headers.Headers.add_header`
+        方法的:meth:`add`的别名。
         """
         self.add(_key, _value, **_kw)
 
     def clear(self):
-        """Clears all headers."""
+        """清除所有的头部。"""
         del self._list[:]
 
     def set(self, _key, _value, **kw):
-        """Remove all header tuples for `key` and add a new one.  The newly
-        added key either appears at the end of the list if there was no
-        entry or replaces the first one.
+        """移除一个键的所有头部元组并且添加一个新的。新添加的键要么出现在列表的末尾，
+        如果没有条目在列表中的话，或者代替第一个。
 
-        Keyword arguments can specify additional parameters for the header
-        value, with underscores converted to dashes.  See :meth:`add` for
-        more information.
+        关键字参数可以给header value指定额外的参数，这些参数携带的下划线被转换为破折号。
+        查看:meth:`add`获取更多信息。
 
         .. versionchanged:: 0.6.1
-           :meth:`set` now accepts the same arguments as :meth:`add`.
+           :meth:`set` 现在接收和:meth:`add`一样的参数。
 
-        :param key: The key to be inserted.
-        :param value: The value to be inserted.
+        :param key: 被插入的键。
+        :param value: 被插入的值。
         """
         if kw:
             _value = _options_header_vkw(_value, kw)
         _key = _unicodify_header_value(_key)
         _value = _unicodify_header_value(_value)
-        self._validate_value(_value)
+        self._validate_value(_value)  # if '\r' or '\n' is in _value
         if not self._list:
             self._list.append((_key, _value))
             return
@@ -1316,7 +1316,7 @@ class Headers(object):
         ikey = _key.lower()
         for idx, (old_key, _old_value) in enumerate(listiter):
             if old_key.lower() == ikey:
-                # replace first ocurrence
+                # 替换出现的第一个
                 self._list[idx] = (_key, _value)
                 break
         else:
@@ -1325,12 +1325,10 @@ class Headers(object):
         self._list[idx + 1 :] = [t for t in listiter if t[0].lower() != ikey]
 
     def setdefault(self, key, default):
-        """Returns the value for the key if it is in the dict, otherwise it
-        returns `default` and sets that value for `key`.
+        """如果这个键存在在字典中，返回这个键对应的值，否则返回`default`并且设置`key`的值为default。
 
-        :param key: The key to be looked up.
-        :param default: The default value to be returned if the key is not
-                        in the dict.  If not further specified it's `None`.
+        :param key: 被查询的key。
+        :param default: 如果key不再字典中，要返回的默认值。如果没有特别指定，则返回的的是`None`。
         """
         if key in self:
             return self[key]
@@ -1338,7 +1336,7 @@ class Headers(object):
         return default
 
     def __setitem__(self, key, value):
-        """Like :meth:`set` but also supports index/slice based setting."""
+        """类似:meth:`set`一样的功能，但是基于设置，也支持索引/分片。"""
         if isinstance(key, (slice, integer_types)):
             if isinstance(key, integer_types):
                 value = [value]
@@ -1346,6 +1344,7 @@ class Headers(object):
                 (_unicodify_header_value(k), _unicodify_header_value(v))
                 for (k, v) in value
             ]
+            # TODO From O(2n) decrease to O(n)?
             [self._validate_value(v) for (k, v) in value]
             if isinstance(key, integer_types):
                 self._list[key] = value[0]
@@ -1355,10 +1354,10 @@ class Headers(object):
             self.set(key, value)
 
     def to_wsgi_list(self):
-        """Convert the headers into a list suitable for WSGI.
+        """转换headers成适合WSGI的一个列表。
 
-        The values are byte strings in Python 2 converted to latin1 and unicode
-        strings in Python 3 for the WSGI server to encode.
+        这些值是字节字符串，在 Python 2 中被转换成latin1，在 Python 3 中转换成 unicode string
+        以便WSGI服务器进行编码。
 
         :return: list
         """
@@ -1373,7 +1372,7 @@ class Headers(object):
         return self.copy()
 
     def __str__(self):
-        """Returns formatted headers suitable for HTTP transmission."""
+        """返回适合于HTTP传输的格式化后的headers。"""
         strs = []
         for key, value in self.to_wsgi_list():
             strs.append("%s: %s" % (key, value))
