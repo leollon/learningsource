@@ -1384,9 +1384,8 @@ class Headers(object):
 
 
 class ImmutableHeadersMixin(object):
-    """Makes a :class:`Headers` immutable.  We do not mark them as
-    hashable though since the only usecase for this datastructure
-    in Werkzeug is a view on a mutable structure.
+    """将一个:class:`Headers`变成不可变的对象。不标记它们是可哈希的，
+    尽管由于在Werkzeug中唯一使用到这个数据结构的地方是在一个可变结构上的视图。
 
     .. versionadded:: 0.5
 
@@ -1423,14 +1422,10 @@ class ImmutableHeadersMixin(object):
 
 
 class EnvironHeaders(ImmutableHeadersMixin, Headers):
-    """Read only version of the headers from a WSGI environment.  This
-    provides the same interface as `Headers` and is constructed from
-    a WSGI environment.
+    """从WSGI环境中只读取headers。提供和`Headers`相同的的接口并且从一个WSGI环境中构造出来。
 
-    From Werkzeug 0.3 onwards, the `KeyError` raised by this class is also a
-    subclass of the :exc:`~exceptions.BadRequest` HTTP exception and will
-    render a page for a ``400 BAD REQUEST`` if caught in a catch-all for
-    HTTP exceptions.
+    从 Werkzeug 0.3 往前，由这个类引发的`KeyError`也是:exc:`~exceptions.BadRequest` HTTP 异常的子类
+    并且，如果在所有的 HTTP 异常捕获中被捕获，将会渲染一个``400 BAD REQUEDT``的页面。
     """
 
     def __init__(self, environ):
@@ -1442,8 +1437,7 @@ class EnvironHeaders(ImmutableHeadersMixin, Headers):
     __hash__ = None
 
     def __getitem__(self, key, _get_mode=False):
-        # _get_mode is a no-op for this class as there is no index but
-        # used because get() calls it.
+        # _get_mode 在这个类中是一个空操作，因为没有索引但是又因为get()会调用它而使用到。
         if not isinstance(key, string_types):
             raise KeyError(key)
         key = key.upper().replace("-", "_")
@@ -1452,8 +1446,7 @@ class EnvironHeaders(ImmutableHeadersMixin, Headers):
         return _unicodify_header_value(self.environ["HTTP_" + key])
 
     def __len__(self):
-        # the iter is necessary because otherwise list calls our
-        # len which would call list again and so forth.
+        # iter是必要的，因为list调用len，len又会再一次调用list，导致调用过程循环不断。
         return len(list(iter(self)))
 
     def __iter__(self):
@@ -1467,6 +1460,8 @@ class EnvironHeaders(ImmutableHeadersMixin, Headers):
                     _unicodify_header_value(value),
                 )
             elif key in ("CONTENT_TYPE", "CONTENT_LENGTH") and value:
+                # (Content-type, 'plain/html')
+                # (Content-length, '128')
                 yield (key.replace("_", "-").title(), _unicodify_header_value(value))
 
     def copy(self):
@@ -1475,9 +1470,8 @@ class EnvironHeaders(ImmutableHeadersMixin, Headers):
 
 @native_itermethods(["keys", "values", "items", "lists", "listvalues"])
 class CombinedMultiDict(ImmutableMultiDictMixin, MultiDict):
-    """A read only :class:`MultiDict` that you can pass multiple :class:`MultiDict`
-    instances as sequence and it will combine the return values of all wrapped
-    dicts:
+    """一个只读的:class:`MultiDict`, 可以像序列一样传递多个:class:`MultiDict`实例并且
+    它将会组合所有被包装的字典的返回值：
 
     >>> from werkzeug.datastructures import CombinedMultiDict, MultiDict
     >>> post = MultiDict([('foo', 'bar')])
@@ -1488,13 +1482,11 @@ class CombinedMultiDict(ImmutableMultiDictMixin, MultiDict):
     >>> combined['blub']
     'blah'
 
-    This works for all read operations and will raise a `TypeError` for
-    methods that usually change data which isn't possible.
-
-    From Werkzeug 0.3 onwards, the `KeyError` raised by this class is also a
-    subclass of the :exc:`~exceptions.BadRequest` HTTP exception and will
-    render a page for a ``400 BAD REQUEST`` if caught in a catch-all for HTTP
-    exceptions.
+    只对所有的读操作起作用，并且会因为那些通常改变不可能改变的数据的方法而引起`TypeError`异常。
+    
+    
+    从 Werkzeug 0.3 往前，由这个类引发的`KeyError`也是:exc:`~exceptions.BadRequest` HTTP 异常的子类
+    并且，如果在所有的 HTTP 异常捕获中被捕获，将会渲染一个``400 BAD REQUEDT``的页面。
     """
 
     def __reduce_ex__(self, protocol):
@@ -1508,12 +1500,14 @@ class CombinedMultiDict(ImmutableMultiDictMixin, MultiDict):
         raise TypeError("cannot create %r instances by fromkeys" % cls.__name__)
 
     def __getitem__(self, key):
+        # calls like dict_obj["key"]
         for d in self.dicts:
             if key in d:
                 return d[key]
         raise exceptions.BadRequestKeyError(key)
 
     def get(self, key, default=None, type=None):
+        # calls like dict_obj.get("key",'', int)
         for d in self.dicts:
             if key in d:
                 if type is not None:
