@@ -1611,21 +1611,20 @@ class CombinedMultiDict(ImmutableMultiDictMixin, MultiDict):
 
 
 class FileMultiDict(MultiDict):
-    """A special :class:`MultiDict` that has convenience methods to add
-    files to it.  This is used for :class:`EnvironBuilder` and generally
-    useful for unittesting.
+    """一个有着便捷方法来往它添加文件的特殊的:class:`MultiDict`。
+    被用在:class:`EnvironBuilder`中并且通常来说是用于单元测试。
 
     .. versionadded:: 0.5
     """
 
     def add_file(self, name, file, filename=None, content_type=None):
-        """Adds a new file to the dict.  `file` can be a file name or
-        a :class:`file`-like or a :class:`FileStorage` object.
+        """往字典中添加新文件。`file`可能是一个文件名或类:class:`file`或
+        一个:class:`FileStorage`对象。
 
-        :param name: the name of the field.
-        :param file: a filename or :class:`file`-like object
-        :param filename: an optional filename
-        :param content_type: an optional content type
+        :param name: 字段的名字。
+        :param file: 一个文件名或类:class:`file`对象。
+        :param filename: 一个可选的的文件名
+        :param content_type: 一个可选的文件内容类型
         """
         if isinstance(file, FileStorage):
             value = file
@@ -1635,6 +1634,8 @@ class FileMultiDict(MultiDict):
                     filename = file
                 file = open(file, "rb")
             if filename and content_type is None:
+                # 获取文件内容类型，如果guess_type返回None，
+                # 则是"applicaiton/octet-stream"
                 content_type = (
                     mimetypes.guess_type(filename)[0] or "application/octet-stream"
                 )
@@ -1644,7 +1645,7 @@ class FileMultiDict(MultiDict):
 
 
 class ImmutableDict(ImmutableDictMixin, dict):
-    """An immutable :class:`dict`.
+    """一个不可变 :class:`dict`
 
     .. versionadded:: 0.5
     """
@@ -1653,9 +1654,8 @@ class ImmutableDict(ImmutableDictMixin, dict):
         return "%s(%s)" % (self.__class__.__name__, dict.__repr__(self))
 
     def copy(self):
-        """Return a shallow mutable copy of this object.  Keep in mind that
-        the standard library's :func:`copy` function is a no-op for this class
-        like for any other python immutable type (eg: :class:`tuple`).
+        """返回这个对象的浅可变拷贝。要记住的是标准库的:func:`copy`对于这个类来说是空操作，
+        就像对于任何其他python的不可变类型一样（例如： :class:`tuple`）。
         """
         return dict(self)
 
@@ -1664,15 +1664,14 @@ class ImmutableDict(ImmutableDictMixin, dict):
 
 
 class ImmutableMultiDict(ImmutableMultiDictMixin, MultiDict):
-    """An immutable :class:`MultiDict`.
+    """一个不可变的 :class:`MultiDict`。
 
     .. versionadded:: 0.5
     """
 
     def copy(self):
-        """Return a shallow mutable copy of this object.  Keep in mind that
-        the standard library's :func:`copy` function is a no-op for this class
-        like for any other python immutable type (eg: :class:`tuple`).
+        """返回这个对象的浅可变拷贝。要记住的是标准库的:func:`copy`对于这个类来说是空操作，
+        就像对于任何其他python的不可变类型一样（例如： :class:`tuple`）。
         """
         return MultiDict(self)
 
@@ -1681,7 +1680,7 @@ class ImmutableMultiDict(ImmutableMultiDictMixin, MultiDict):
 
 
 class ImmutableOrderedMultiDict(ImmutableMultiDictMixin, OrderedMultiDict):
-    """An immutable :class:`OrderedMultiDict`.
+    """一个不可变的 :class:`OrderedMultiDict`.
 
     .. versionadded:: 0.6
     """
@@ -1690,9 +1689,8 @@ class ImmutableOrderedMultiDict(ImmutableMultiDictMixin, OrderedMultiDict):
         return enumerate(iteritems(self, multi=True))
 
     def copy(self):
-        """Return a shallow mutable copy of this object.  Keep in mind that
-        the standard library's :func:`copy` function is a no-op for this class
-        like for any other python immutable type (eg: :class:`tuple`).
+        """返回这个对象的浅可变拷贝。要记住的是标准库的:func:`copy`对于这个类来说是空操作，
+        就像对于任何其他python的不可变类型一样（例如： :class:`tuple`）。
         """
         return OrderedMultiDict(self)
 
@@ -1702,13 +1700,12 @@ class ImmutableOrderedMultiDict(ImmutableMultiDictMixin, OrderedMultiDict):
 
 @native_itermethods(["values"])
 class Accept(ImmutableList):
-    """An :class:`Accept` object is just a list subclass for lists of
-    ``(value, quality)`` tuples.  It is automatically sorted by specificity
-    and quality.
+    """一个:class:`Accept`对象只是一个用于``(value, quality)``元组列表的列表子类。
+    自动地通过特异性和质量进行排序。
 
-    All :class:`Accept` objects work similar to a list but provide extra
-    functionality for working with the data.  Containment checks are
-    normalized to the rules of that header:
+    所有的:class:`Accept`对象的工作方式类似于列表但是提供额外的操作数据的功能。
+
+    containment checks被规范成那个头部的规则：
 
     >>> a = CharsetAccept([('ISO-8859-1', 1), ('utf-8', 0.7)])
     >>> a.best
@@ -1720,7 +1717,7 @@ class Accept(ImmutableList):
     >>> 'utf7' in a
     False
 
-    To get the quality for an item you can use normal item lookup:
+    为了获取item的quality，可以使用规范的item查找：
 
     >>> print a['utf-8']
     0.7
@@ -1728,7 +1725,7 @@ class Accept(ImmutableList):
     0
 
     .. versionchanged:: 0.5
-       :class:`Accept` objects are forced immutable now.
+       :class:`Accept`对象现在强制为不可变的。
     """
 
     def __init__(self, values=()):
@@ -1748,28 +1745,28 @@ class Accept(ImmutableList):
             list.__init__(self, values)
 
     def _specificity(self, value):
-        """Returns a tuple describing the value's specificity."""
+        """返回一个描述值的特异性的元组。
+        """
         return (value != "*",)
 
     def _value_matches(self, value, item):
-        """Check if a value matches a given accept item."""
+        """检查一个值是否匹配给定的accept项。"""
         return item == "*" or item.lower() == value.lower()
 
     def __getitem__(self, key):
-        """Besides index lookup (getting item n) you can also pass it a string
-        to get the quality for the item.  If the item is not in the list, the
-        returned quality is ``0``.
+        """除了索引查找（获取item n），也可以传递一个字符串来获取item的quality。
+        如果该项不再列表中， 返回的quality为``0``。
         """
         if isinstance(key, string_types):
             return self.quality(key)
         return list.__getitem__(self, key)
 
     def quality(self, key):
-        """Returns the quality of the key.
+        """返回key的quality。
 
         .. versionadded:: 0.6
-           In previous versions you had to use the item-lookup syntax
-           (eg: ``obj[key]`` instead of ``obj.quality(key)``)
+           在之前的版本中，得使用item-lookup语法
+           （例如：``obj[key]`` 而不是 ``obj.quality(key)``）
         """
         for item, quality in self:
             if self._value_matches(key, item):
@@ -1789,13 +1786,12 @@ class Accept(ImmutableList):
         )
 
     def index(self, key):
-        """Get the position of an entry or raise :exc:`ValueError`.
+        """获取一个条目的位置或者引发:exc:`ValueError`异常。
 
-        :param key: The key to be looked up.
+        :param key: 被查找的key。
 
         .. versionchanged:: 0.5
-           This used to raise :exc:`IndexError`, which was inconsistent
-           with the list API.
+           过去常常引发和list API不一致的的:exc:`IndexError`异常。
         """
         if isinstance(key, string_types):
             for idx, (item, _quality) in enumerate(self):
@@ -1805,9 +1801,9 @@ class Accept(ImmutableList):
         return list.index(self, key)
 
     def find(self, key):
-        """Get the position of an entry or return -1.
+        """获取一个条目的位置或返回-1。
 
-        :param key: The key to be looked up.
+        :param key: 被查询的key。
         """
         try:
             return self.index(key)
@@ -1815,12 +1811,12 @@ class Accept(ImmutableList):
             return -1
 
     def values(self):
-        """Iterate over all values."""
+        """迭代完所有的值。"""
         for item in self:
             yield item[0]
 
     def to_header(self):
-        """Convert the header set into an HTTP header string."""
+        """转换header集合成为HTTP header 字符串。"""
         result = []
         for value, quality in self:
             if quality != 1:
@@ -1834,16 +1830,15 @@ class Accept(ImmutableList):
     def _best_single_match(self, match):
         for client_item, quality in self:
             if self._value_matches(match, client_item):
-                # self is sorted by specificity descending, we can exit
+                # self 是通过specificity降续排序的，可以退出
                 return client_item, quality
 
     def best_match(self, matches, default=None):
-        """Returns the best match from a list of possible matches based
-        on the specificity and quality of the client. If two items have the
-        same quality and specificity, the one is returned that comes first.
+        """基于客户端的specificity以及quality，从一个可能匹配的列表中返回最匹配的item。
+        如果有两个items同时具有相同的quality以及specificity，返回首先出现的那个。
 
-        :param matches: a list of matches to check for
-        :param default: the value that is returned if none match
+        :param matches: 一个用于检查的匹配列表。
+        :param default: 如果没有匹配的，返回的值
         """
         result = default
         best_quality = -1
@@ -1856,7 +1851,7 @@ class Accept(ImmutableList):
             specificity = self._specificity(client_item)
             if quality <= 0 or quality < best_quality:
                 continue
-            # better quality or same quality but more specific => better match
+            # 更好的quality或者相同quality但更为特殊的 => 有更好的匹配
             if quality > best_quality or specificity > best_specificity:
                 result = server_item
                 best_quality = quality
@@ -1865,7 +1860,7 @@ class Accept(ImmutableList):
 
     @property
     def best(self):
-        """The best match as value."""
+        """最佳匹配作为值The best match as value."""
         if self:
             return self[0][0]
 
