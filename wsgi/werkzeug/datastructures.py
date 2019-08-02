@@ -1525,11 +1525,10 @@ class CombinedMultiDict(ImmutableMultiDictMixin, MultiDict):
         return rv
 
     def _keys_impl(self):
-        """This function exists so __len__ can be implemented more efficiently,
-        saving one list creation from an iterator.
+        """因为这个函数存在所以__len__能够被实现得更高效，保留从一个迭代器创建的一个列表。
 
-        Using this for Python 2's ``dict.keys`` behavior would be useless since
-        `dict.keys` in Python 2 returns a list, while we have a set here.
+        对于Python2 的``dict.keys``使用这个函数是没有用的，由于Python 2中的`dict.keys`
+        返回的是一个列表对象，然而这里返回的是set对象。
         """
         rv = set()
         for d in self.dicts:
@@ -1542,6 +1541,8 @@ class CombinedMultiDict(ImmutableMultiDictMixin, MultiDict):
     __iter__ = keys
 
     def items(self, multi=False):
+        """返回`(key, value)`元组
+        """
         found = set()
         for d in self.dicts:
             for key, value in iteritems(d, multi):
@@ -1552,6 +1553,7 @@ class CombinedMultiDict(ImmutableMultiDictMixin, MultiDict):
                     yield key, value
 
     def values(self):
+        """返回字典中所有的键对应的值。"""
         for _key, value in iteritems(self):
             yield value
 
@@ -1563,29 +1565,30 @@ class CombinedMultiDict(ImmutableMultiDictMixin, MultiDict):
         return iteritems(rv)
 
     def listvalues(self):
+        # x is like (key, value)
         return (x[1] for x in self.lists())
 
     def copy(self):
-        """Return a shallow mutable copy of this object.
+        """返回这个对象的一份浅可变拷贝。
+
+        返回一个表示在复制时的数据的:class:`MultiDict`。这份拷贝将不再将变化反馈给包装的字典。
 
         This returns a :class:`MultiDict` representing the data at the
         time of copying. The copy will no longer reflect changes to the
         wrapped dicts.
 
         .. versionchanged:: 0.15
-            Return a mutable :class:`MultiDict`.
+            返回一个可变的:class:`MultiDict`对象。
         """
         return MultiDict(self)
 
     def to_dict(self, flat=True):
-        """Return the contents as regular dict.  If `flat` is `True` the
-        returned dict will only have the first item present, if `flat` is
-        `False` all values will be returned as lists.
+        """想普通字典一样返回内容。如果`flat`为`True`，返回的字典将会只含有第一个值出现。
+        否则，所有的值都做为一个列表被返回。
 
-        :param flat: If set to `False` the dict returned will have lists
-                     with all the values in it.  Otherwise it will only
-                     contain the first item for each key.
-        :return: a :class:`dict`
+        :param flat: 如果设置`False`，返回的字典将会有列表，所有值都在列表中。
+                     否则，将只包含每个键的第一个值。
+        :return: 一个 :class:`dict`对象
         """
         rv = {}
         for d in reversed(self.dicts):
