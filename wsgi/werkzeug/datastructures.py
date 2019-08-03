@@ -1866,11 +1866,11 @@ class Accept(ImmutableList):
 
 
 class MIMEAccept(Accept):
-    """Like :class:`Accept` but with special methods and behavior for
-    mimetypes.
+    """像:class:`Accept`一样，但是含有用于mimetypes 的特殊方法以及行为。
     """
 
     def _specificity(self, value):
+        # value may looks like text/html, application/json and *
         return tuple(x != "*" for x in value.split("/", 1))
 
     def _value_matches(self, value, item):
@@ -1878,8 +1878,7 @@ class MIMEAccept(Accept):
             x = x.lower()
             return ("*", "*") if x == "*" else x.split("/", 1)
 
-        # this is from the application which is trusted.  to avoid developer
-        # frustration we actually check these for valid values
+        # 这是来自可信任的应用。为了避免开发者有挫败感，实际上可以通过检查来验证有效值。
         if "/" not in value:
             raise ValueError("invalid mimetype %r" % value)
         value_type, value_subtype = _normalize(value)
@@ -1904,24 +1903,24 @@ class MIMEAccept(Accept):
 
     @property
     def accept_html(self):
-        """True if this object accepts HTML."""
+        """如果这个对象接受HTML，返回True。"""
         return (
             "text/html" in self or "application/xhtml+xml" in self or self.accept_xhtml
         )
 
     @property
     def accept_xhtml(self):
-        """True if this object accepts XHTML."""
+        """如果这个对象接受XHTML，返回True。"""
         return "application/xhtml+xml" in self or "application/xml" in self
 
     @property
     def accept_json(self):
-        """True if this object accepts JSON."""
+        """如果这个对象接受JSON，返回True。."""
         return "application/json" in self
 
 
 class LanguageAccept(Accept):
-    """Like :class:`Accept` but with normalization for languages."""
+    """像:class:`Accept`一样，但带有语言规范。"""
 
     def _value_matches(self, value, item):
         def _normalize(language):
@@ -1931,7 +1930,7 @@ class LanguageAccept(Accept):
 
 
 class CharsetAccept(Accept):
-    """Like :class:`Accept` but with normalization for charsets."""
+    """像:class:`Accept`一样，但带有charsets规范。"""
 
     def _value_matches(self, value, item):
         def _normalize(name):
@@ -1944,8 +1943,9 @@ class CharsetAccept(Accept):
 
 
 def cache_property(key, empty, type):
-    """Return a new property object for a cache header.  Useful if you
-    want to add support for a cache extension in a subclass."""
+    """返回一个新的属性对象用于cache header。在往一个子类中添加支持cache extension时，是有用的。
+    """
+    # TODO why not define in :class:`_CacheControl1`?
     return property(
         lambda x: x._get_cache_value(key, empty, type),
         lambda x, v: x._set_cache_value(key, v, type),
@@ -1955,22 +1955,17 @@ def cache_property(key, empty, type):
 
 
 class _CacheControl(UpdateDictMixin, dict):
-    """Subclass of a dict that stores values for a Cache-Control header.  It
-    has accessors for all the cache-control directives specified in RFC 2616.
-    The class does not differentiate between request and response directives.
+    """一个存储Cache-Control header值的字典子类。它含有在RFC 2616 直接指定的
+    所有cache-control的存储器。这个类在request 和 response之间是没有差异的。
 
-    Because the cache-control directives in the HTTP header use dashes the
-    python descriptors use underscores for that.
+    因为HTTP中的cache-control使用的是短横杠(-)，python描述器使用下划线。
 
-    To get a header of the :class:`CacheControl` object again you can convert
-    the object into a string or call the :meth:`to_header` method.  If you plan
-    to subclass it and add your own items have a look at the sourcecode for
-    that class.
+    为了再次获取:class:`CacheControl`对象的header，可以将这个对象转换成字符串
+    或调用:meth:`to_header`方法。如果计划子类化它并且添加自己的items，为了那个类得看一下源码。
 
     .. versionchanged:: 0.4
 
-       Setting `no_cache` or `private` to boolean `True` will set the implicit
-       none-value which is ``*``:
+       设置`no_cache` 或 `private` 为`True`将会设置隐藏的none-value 为``*``：
 
        >>> cc = ResponseCacheControl()
        >>> cc.no_cache = True
@@ -1982,8 +1977,7 @@ class _CacheControl(UpdateDictMixin, dict):
        >>> cc
        <ResponseCacheControl ''>
 
-       In versions before 0.5 the behavior documented here affected the now
-       no longer existing `CacheControl` class.
+       在0.5之前的版本，在这里描述的行为受到影响，但是现在不再存在`CacheControl`类了。
     """
 
     no_cache = cache_property("no-cache", "*", None)
@@ -1997,7 +1991,7 @@ class _CacheControl(UpdateDictMixin, dict):
         self.provided = values is not None
 
     def _get_cache_value(self, key, empty, type):
-        """Used internally by the accessor properties."""
+        """被存储器属性在内部进行使用。"""
         if type is bool:
             return key in self
         if key in self:
@@ -2006,13 +2000,14 @@ class _CacheControl(UpdateDictMixin, dict):
                 return empty
             elif type is not None:
                 try:
+                    # 将value的类型转换成type
                     value = type(value)
                 except ValueError:
                     pass
             return value
 
     def _set_cache_value(self, key, value, type):
-        """Used internally by the accessor properties."""
+        """被存储器属性在内部进行使用。"""
         if type is bool:
             if value:
                 self[key] = None
@@ -2020,6 +2015,7 @@ class _CacheControl(UpdateDictMixin, dict):
                 self.pop(key, None)
         else:
             if value is None:
+                # TODO if key does not exists, pop None it should be?
                 self.pop(key)
             elif value is True:
                 self[key] = None
@@ -2027,12 +2023,12 @@ class _CacheControl(UpdateDictMixin, dict):
                 self[key] = value
 
     def _del_cache_value(self, key):
-        """Used internally by the accessor properties."""
+        """被存储器属性在内部进行使用。"""
         if key in self:
             del self[key]
 
     def to_header(self):
-        """Convert the stored values into a cache control header."""
+        """将存储的值变成cache control header。"""
         return dump_header(self)
 
     def __str__(self):
@@ -2046,17 +2042,14 @@ class _CacheControl(UpdateDictMixin, dict):
 
 
 class RequestCacheControl(ImmutableDictMixin, _CacheControl):
-    """A cache control for requests.  This is immutable and gives access
-    to all the request-relevant cache control headers.
+    """用于requests的cache control。这是不可变的并且给允许访问
+    所有的请求相关的cache control headers。
 
-    To get a header of the :class:`RequestCacheControl` object again you can
-    convert the object into a string or call the :meth:`to_header` method.  If
-    you plan to subclass it and add your own items have a look at the sourcecode
-    for that class.
+    为了再次获取:class:`RequestCacheControl`对象的header，可以将对象转化成字符串或者
+    调用:meth:`to_header`方法。如果打算子类话它并且添加自己的items，为了那个子类，看一下源码。
 
     .. versionadded:: 0.5
-       In previous versions a `CacheControl` class existed that was used
-       both for request and response.
+       在之前的版本中，存在的`CacheControl` 类型为request 以及 response所使用。
     """
 
     max_stale = cache_property("max-stale", "*", int)
@@ -2066,18 +2059,15 @@ class RequestCacheControl(ImmutableDictMixin, _CacheControl):
 
 
 class ResponseCacheControl(_CacheControl):
-    """A cache control for responses.  Unlike :class:`RequestCacheControl`
-    this is mutable and gives access to response-relevant cache control
-    headers.
+    """用于响应的cache control。不像:class:`RequestCacheControl`，这里是可变的并且
+    允许访问所有响应相关的cache control headers。
 
-    To get a header of the :class:`ResponseCacheControl` object again you can
-    convert the object into a string or call the :meth:`to_header` method.  If
-    you plan to subclass it and add your own items have a look at the sourcecode
-    for that class.
+
+    为了再次获取:class:`ResponseCacheControl`对象的header，可以将对象转化成字符串或者
+    调用:meth:`to_header`方法。如果打算子类话它并且添加自己的items，为了那个子类，看一下源码。
 
     .. versionadded:: 0.5
-       In previous versions a `CacheControl` class existed that was used
-       both for request and response.
+       在之前的版本中，存在的`CacheControl` 类型为request 以及 response所使用。
     """
 
     public = cache_property("public", None, bool)
@@ -2087,8 +2077,8 @@ class ResponseCacheControl(_CacheControl):
     s_maxage = cache_property("s-maxage", None, None)
 
 
-# attach cache_property to the _CacheControl as staticmethod
-# so that others can reuse it.
+# 将cache_property 作为 staticmethod 附加到_CacheControl
+# 这样其他的子类就可以重用它了
 _CacheControl.cache_property = staticmethod(cache_property)
 
 
@@ -2106,12 +2096,10 @@ class CallbackDict(UpdateDictMixin, dict):
 
 
 class HeaderSet(collections_abc.MutableSet):
-    """Similar to the :class:`ETags` class this implements a set-like structure.
-    Unlike :class:`ETags` this is case insensitive and used for vary, allow, and
-    content-language headers.
+    """与:class:`ETags`类相似，这个类实现了set-like 的结构。
+    不像:class:`Etags`，这个是忽略大小写的，并且能偶用于vary，allow 以及 content-language headers。
 
-    If not constructed using the :func:`parse_set_header` function the
-    instantiation works like this:
+    如果不是使用:func:`parse_set_header`函数构造的，这个实例化像样子工作：
 
     >>> hs = HeaderSet(['foo', 'bar', 'baz'])
     >>> hs
@@ -2124,18 +2112,17 @@ class HeaderSet(collections_abc.MutableSet):
         self.on_update = on_update
 
     def add(self, header):
-        """Add a new header to the set."""
+        """往这个集合添加一个新的header。"""
         self.update((header,))
 
     def remove(self, header):
-        """Remove a header from the set.  This raises an :exc:`KeyError` if the
-        header is not in the set.
+        """从集合中移除一个头部。如果这个header不在集合中，引发:exc:`KeyError`异常。
 
         .. versionchanged:: 0.5
-            In older versions a :exc:`IndexError` was raised instead of a
-            :exc:`KeyError` if the object was missing.
+            如果缺少这个对象，在旧的版本中引发:exc:`IndexError`异常，
+            而不是:exc:`KeyError`。
 
-        :param header: the header to be removed.
+        :param header: 要被移除的header。
         """
         key = header.lower()
         if key not in self._set:
@@ -2149,9 +2136,9 @@ class HeaderSet(collections_abc.MutableSet):
             self.on_update(self)
 
     def update(self, iterable):
-        """Add all the headers from the iterable to the set.
+        """往集合中添加来自一个可迭代对象的所有headers。
 
-        :param iterable: updates the set with the items from the iterable.
+        :param iterable: 使用来自迭代对象的所有items更新集合。
         """
         inserted_any = False
         for header in iterable:
@@ -2164,9 +2151,9 @@ class HeaderSet(collections_abc.MutableSet):
             self.on_update(self)
 
     def discard(self, header):
-        """Like :meth:`remove` but ignores errors.
+        """像:meth:`remove`一样，但是忽略错误。
 
-        :param header: the header to be discarded.
+        :param header: 要被丢弃的header。
         """
         try:
             return self.remove(header)
@@ -2174,9 +2161,9 @@ class HeaderSet(collections_abc.MutableSet):
             pass
 
     def find(self, header):
-        """Return the index of the header in the set or return -1 if not found.
+        """返回header在集合中的索引或者如果没有找到该header，返回-1。
 
-        :param header: the header to be looked up.
+        :param header: 被查询的header。
         """
         header = header.lower()
         for idx, item in enumerate(self._headers):
@@ -2185,10 +2172,9 @@ class HeaderSet(collections_abc.MutableSet):
         return -1
 
     def index(self, header):
-        """Return the index of the header in the set or raise an
-        :exc:`IndexError`.
+        """返回header在集合中的索引或者引起:exc:`IndexError`异常。
 
-        :param header: the header to be looked up.
+        :param header: 被查询的header。
         """
         rv = self.find(header)
         if rv < 0:
@@ -2196,22 +2182,22 @@ class HeaderSet(collections_abc.MutableSet):
         return rv
 
     def clear(self):
-        """Clear the set."""
+        """清除集合内容。"""
         self._set.clear()
         del self._headers[:]
         if self.on_update is not None:
             self.on_update(self)
 
     def as_set(self, preserve_casing=False):
-        """Return the set as real python set type.  When calling this, all
-        the items are converted to lowercase and the ordering is lost.
+        """如python的真实set类型一样，返回一个集合。当调用时，所有的项都
+        被转成小写字母并且丢失原先的顺序。
 
-        :param preserve_casing: if set to `True` the items in the set returned
-                                will have the original case like in the
-                                :class:`HeaderSet`, otherwise they will
-                                be lowercase.
+        :param preserve_casing: 如果设置为`True`，返回的结合中的项将保留原本
+                                在:class:`HeaderSet`中的大小写格式，否则将
+                                会是小写的格式。
         """
         if preserve_casing:
+            # 保留原来的大小写格式，但是依然还是会丢失原先的顺序
             return set(self._headers)
         return set(self._set)
 
@@ -2220,15 +2206,18 @@ class HeaderSet(collections_abc.MutableSet):
         return ", ".join(map(quote_header_value, self._headers))
 
     def __getitem__(self, idx):
+        # headerset_obj[idx]
         return self._headers[idx]
 
     def __delitem__(self, idx):
+        # del headerset_obj[idx]
         rv = self._headers.pop(idx)
         self._set.remove(rv.lower())
         if self.on_update is not None:
             self.on_update(self)
 
     def __setitem__(self, idx, value):
+        # headerset_obj[idx] = value
         old = self._headers[idx]
         self._set.remove(old.lower())
         self._headers[idx] = value
@@ -2237,6 +2226,7 @@ class HeaderSet(collections_abc.MutableSet):
             self.on_update(self)
 
     def __contains__(self, header):
+        # header in headerset_obj
         return header.lower() in self._set
 
     def __len__(self):
