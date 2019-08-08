@@ -2354,22 +2354,21 @@ class IfRange(object):
 
 
 class Range(object):
-    """Represents a ``Range`` header. All methods only support only
-    bytes as the unit. Stores a list of ranges if given, but the methods
-    only work if only one range is provided.
+    """表示``Range``header。所有的方法只支持字节作为单位。如果给了一个范围，则存储一个范围的列表，
+    但是只有提供了一个range，这个方法才会工作。
 
-    :raise ValueError: If the ranges provided are invalid.
+    :raise ValueError: 如果提供的范围是无效的。
 
     .. versionchanged:: 0.15
-        The ranges passed in are validated.
+        传递进来的范围是会被验证的。
 
     .. versionadded:: 0.7
     """
 
     def __init__(self, units, ranges):
-        #: The units of this range.  Usually "bytes".
+        #: 这个范围的单元。通常是"bytes"。
         self.units = units
-        #: A list of ``(begin, end)`` tuples for the range header provided.
+        #: 提供给range header的``(begin, end)``元组列表。
         #: The ranges are non-inclusive.
         self.ranges = ranges
 
@@ -2378,9 +2377,8 @@ class Range(object):
                 raise ValueError("{} is not a valid range.".format((start, end)))
 
     def range_for_length(self, length):
-        """If the range is for bytes, the length is not None and there is
-        exactly one range and it is satisfiable it returns a ``(start, stop)``
-        tuple, otherwise `None`.
+        """如果range是字节的，length不为None并且只有一个range和能够满足，则返回一个``(start, stop)``元组，
+        否则返回`None`。
         """
         if self.units != "bytes" or length is None or len(self.ranges) != 1:
             return None
@@ -2393,15 +2391,14 @@ class Range(object):
             return start, min(end, length)
 
     def make_content_range(self, length):
-        """Creates a :class:`~werkzeug.datastructures.ContentRange` object
-        from the current range and given content length.
+        """从当前的range和给定的content length创建一个:class:`~werkzeug.datastructures.ContentRange`对象。
         """
         rng = self.range_for_length(length)
         if rng is not None:
             return ContentRange(self.units, rng[0], rng[1], length)
 
     def to_header(self):
-        """Converts the object back into an HTTP header."""
+        """将对象转换成一个HTTP header。"""
         ranges = []
         for begin, end in self.ranges:
             if end is None:
@@ -2411,8 +2408,7 @@ class Range(object):
         return "%s=%s" % (self.units, ",".join(ranges))
 
     def to_content_range_header(self, length):
-        """Converts the object into `Content-Range` HTTP header,
-        based on given length
+        """基于给定的length，将对象转换成`Content-Range` HTTP头部。
         """
         range_for_length = self.range_for_length(length)
         if range_for_length is not None:
@@ -2575,8 +2571,9 @@ class Authorization(ImmutableDictMixin, dict):
 
 
 class WWWAuthenticate(UpdateDictMixin, dict):
-    """Provides simple access to `WWW-Authenticate` headers."""
+    """提供简单的访问`WWW-Authenticate` headers。"""
 
+    #： 在生成的header中，需要引用键列表。
     #: list of keys that require quoting in the generated header
     _require_quoting = frozenset(["domain", "nonce", "opaque", "realm", "qop"])
 
@@ -2587,7 +2584,7 @@ class WWWAuthenticate(UpdateDictMixin, dict):
         self.on_update = on_update
 
     def set_basic(self, realm="authentication required"):
-        """Clear the auth info and enable basic auth."""
+        """清除auth info以及开启基本的auth。"""
         dict.clear(self)
         dict.update(self, {"__auth_type__": "basic", "realm": realm})
         if self.on_update:
@@ -2596,7 +2593,7 @@ class WWWAuthenticate(UpdateDictMixin, dict):
     def set_digest(
         self, realm, nonce, qop=("auth",), opaque=None, algorithm=None, stale=False
     ):
-        """Clear the auth info and enable digest auth."""
+        """清除auth info并且开启digest auth。"""
         d = {
             "__auth_type__": "digest",
             "realm": realm,
@@ -2615,7 +2612,7 @@ class WWWAuthenticate(UpdateDictMixin, dict):
             self.on_update(self)
 
     def to_header(self):
-        """Convert the stored values into a WWW-Authenticate header."""
+        """转换存储的values成WWW-Authenticate header。"""
         d = dict(self)
         auth_type = d.pop("__auth_type__", None) or "basic"
         return "%s %s" % (
@@ -2641,14 +2638,12 @@ class WWWAuthenticate(UpdateDictMixin, dict):
         return "<%s %r>" % (self.__class__.__name__, self.to_header())
 
     def auth_property(name, doc=None):  # noqa: B902
-        """A static helper function for subclasses to add extra authentication
-        system properties onto a class::
+        """用于子类添加额外验证的系统属性到一个上的一个静态辅助函数：
 
             class FooAuthenticate(WWWAuthenticate):
                 special_realm = auth_property('special_realm')
 
-        For more information have a look at the sourcecode to see how the
-        regular properties (:attr:`realm` etc.) are implemented.
+        更多信息，查看源码来了解常规的属性（:attr:`realm` 等等）是如何被实现的。
         """
 
         def _set_value(self, value):
